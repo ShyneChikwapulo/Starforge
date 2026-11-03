@@ -70,23 +70,48 @@ function blur(src: Layer): Layer {
   return { width, height, data: out };
 }
 
-function sample(layer: Layer, fx: number, fy: number, c: number): number {
-  const x0 = Math.floor(fx);
-  const y0 = Math.floor(fy);
-  const x1 = Math.min(layer.width - 1, x0 + 1);
-  const y1 = Math.min(layer.height - 1, y0 + 1);
-  const tx = fx - x0;
-  const ty = fy - y0;
-  const at = (x: number, y: number) => layer.data[(y * layer.width + x) * 3 + c];
-  return (
-    (at(x0, y0) * (1 - tx) + at(x1, y0) * tx) * (1 - ty) +
-    (at(x0, y1) * (1 - tx) + at(x1, y1) * tx) * ty
-  );
+/** Bilinear resize to the given size, with per-column lookups computed once. */
+function upsample(src: Layer, width: number, height: number): Float32Array {
+  const out = new Float32Array(width * height * 3);
+  const left = new Int32Array(width);
+  const right = new Int32Array(width);
+  const frac = new Float32Array(width);
+  for (let x = 0; x < width; x++) {
+    const fx = Math.min(src.width - 1, Math.max(0, ((x + 0.5) * src.width) / width - 0.5));
+    const x0 = Math.floor(fx);
+    left[x] = x0;
+    right[x] = Math.min(src.width - 1, x0 + 1);
+    frac[x] = fx - x0;
+  }
+
+  for (let y = 0; y < height; y++) {
+    const fy = Math.min(src.height - 1, Math.max(0, ((y + 0.5) * src.height) / height - 0.5));
+    const y0 = Math.floor(fy);
+    const y1 = Math.min(src.height - 1, y0 + 1);
+    const ty = fy - y0;
+    const rowTop = y0 * src.width;
+    const rowBottom = y1 * src.width;
+    for (let x = 0; x < width; x++) {
+      const tx = frac[x];
+      const topLeft = (rowTop + left[x]) * 3;
+      const topRight = (rowTop + right[x]) * 3;
+      const bottomLeft = (rowBottom + left[x]) * 3;
+      const bottomRight = (rowBottom + right[x]) * 3;
+      const o = (y * width + x) * 3;
+      for (let c = 0; c < 3; c++) {
+        const top = src.data[topLeft + c] * (1 - tx) + src.data[topRight + c] * tx;
+        const bottom = src.data[bottomLeft + c] * (1 - tx) + src.data[bottomRight + c] * tx;
+        out[o + c] = top * (1 - ty) + bottom * ty;
+      }
+    }
+  }
+  return out;
 }
 
 /**
  * Add a glow to a floating-point RGB light buffer, in place.
  * Wide blurs are weighted less than tight ones, so bright particles get a hot core and a soft halo.
+ * Levels are combined coarse-to-fine, so only one full-resolution pass is needed.
  */
 export function applyBloom(
   accum: Float32Array,
@@ -104,28 +129,25 @@ export function applyBloom(
     layer = blur(downsample(layer));
     pyramid.push(layer);
   }
+  if (pyramid.length === 0) return;
 
   const weights = pyramid.map((_, i) => 1 / (i + 1));
   const totalWeight = weights.reduce((sum, w) => sum + w, 0);
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      for (let c = 0; c < 3; c++) {
-        let glow = 0;
-        for (let i = 0; i < pyramid.length; i++) {
-          const level = pyramid[i];
-          const fx = Math.min(
-            level.width - 1,
-            Math.max(0, ((x + 0.5) * level.width) / width - 0.5),
-          );
-          const fy = Math.min(
-            level.height - 1,
-            Math.max(0, ((y + 0.5) * level.height) / height - 0.5),
-          );
-          glow += sample(level, fx, fy, c) * weights[i];
-        }
-        accum[(y * width + x) * 3 + c] += (options.strength * glow) / totalWeight;
-      }
-    }
+  const last = pyramid.length - 1;
+  let combined: Layer = {
+    width: pyramid[last].width,
+    height: pyramid[last].height,
+    data: pyramid[last].data.map((value) => value * weights[last]),
+  };
+  for (let i = last - 1; i >= 0; i--) {
+    const level = pyramid[i];
+    const merged = upsample(combined, level.width, level.height);
+    for (let j = 0; j < merged.length; j++) merged[j] += level.data[j] * weights[i];
+    combined = { width: level.width, height: level.height, data: merged };
   }
+
+  const glow = upsample(combined, width, height);
+  const scale = options.strength / totalWeight;
+  for (let j = 0; j < accum.length; j++) accum[j] += glow[j] * scale;
 }
