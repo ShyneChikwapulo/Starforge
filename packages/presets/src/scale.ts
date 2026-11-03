@@ -33,3 +33,11 @@ export function hashString(text: string): number {
   }
   return hash >>> 0;
 }
+
+/** Square-root compress values and normalise them to sum to 1, so small shares stay visible. */
+export function rootWeights(values: number[]): number[] {
+  if (values.length === 0) return [];
+  const roots = values.map((v) => Math.sqrt(Math.max(0, v)));
+  const total = roots.reduce((sum, r) => sum + r, 0);
+  return total > 0 ? roots.map((r) => r / total) : values.map(() => 1 / values.length);
+}
