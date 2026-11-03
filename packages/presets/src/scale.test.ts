@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashString, hexToRgb, logScale, scaleColor } from './scale';
+import { hashString, hexToRgb, logScale, rootWeights, scaleColor } from './scale';
 
 describe('logScale', () => {
   it('maps zero to zero and the maximum to one', () => {
@@ -38,5 +38,21 @@ describe('helpers', () => {
   it('hashes strings stably', () => {
     expect(hashString('starforge')).toBe(hashString('starforge'));
     expect(hashString('a')).not.toBe(hashString('b'));
+  });
+});
+
+describe('rootWeights', () => {
+  it('compresses the range and sums to 1', () => {
+    const [major, minor] = rootWeights([0.81, 0.09]);
+    expect(major).toBeCloseTo(0.75);
+    expect(minor).toBeCloseTo(0.25);
+  });
+
+  it('falls back to equal weights when every value is zero', () => {
+    expect(rootWeights([0, 0])).toEqual([0.5, 0.5]);
+  });
+
+  it('handles an empty list', () => {
+    expect(rootWeights([])).toEqual([]);
   });
 });

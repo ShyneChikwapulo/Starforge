@@ -8,7 +8,7 @@ import {
   type ParticleState,
 } from '@starforge/core';
 import type { Metrics } from '@starforge/github-data';
-import { hashString, hexToRgb, logScale, scaleColor, type Rgb } from './scale';
+import { hashString, hexToRgb, logScale, rootWeights, scaleColor, type Rgb } from './scale';
 import type { Preset, PresetOptions, PresetResult } from './types';
 
 const GALAXY_RADIUS = 10;
@@ -35,11 +35,11 @@ function buildArms(metrics: Metrics): Arm[] {
   if (top.length === 0) {
     return [{ name: null, color: hexToRgb(FALLBACK_COLOR), weight: 1, angle: 0 }];
   }
-  const total = top.reduce((sum, l) => sum + l.share, 0);
+  const weights = rootWeights(top.map((language) => language.share));
   return top.map((language, i) => ({
     name: language.name,
     color: hexToRgb(language.color, FALLBACK_COLOR),
-    weight: total > 0 ? language.share / total : 1 / top.length,
+    weight: weights[i],
     angle: (i / top.length) * Math.PI * 2,
   }));
 }
@@ -74,7 +74,7 @@ function put(
 
 /**
  * Data encodings:
- * - one spiral arm per top language (colour = language colour, density = share of bytes)
+ * - one spiral arm per top language (colour = language colour, density = square root of share of bytes)
  * - one bright star per repository (size = stars, log-scaled; older repos nearer the core)
  * - one ring particle per calendar day (height and brightness = that day's activity)
  * - dust fills the arms
@@ -107,7 +107,7 @@ export function buildGalaxy(metrics: Metrics, options: PresetOptions = {}): Pres
       activity * RING_HEIGHT,
       Math.sin(angle) * RING_RADIUS,
       scaleColor(ringColor, 0.25 + 0.75 * activity),
-      0.6 + 2.4 * activity,
+      0.5 + 1.6 * activity,
     );
   });
 
