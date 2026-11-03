@@ -33,7 +33,7 @@ export interface Frame {
 export const DEFAULT_CAMERA: Camera = {
   yaw: 0.4,
   pitch: 0.55,
-  distance: 34,
+  distance: 28,
   fov: Math.PI / 4,
 };
 
