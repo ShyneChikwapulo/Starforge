@@ -246,7 +246,11 @@ importers:
         specifier: workspace:*
         version: link:../github-data
 
-  packages/renderer-canvas: {}
+  packages/renderer-canvas:
+    dependencies:
+      '@starforge/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/renderer-webgl: {}
 
