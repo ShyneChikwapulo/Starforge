@@ -7,7 +7,7 @@ export interface ParticleState {
   readonly velocity: Float32Array;
   /** Where each particle "wants" to be; behaviours such as `spring` pull towards it. */
   readonly target: Float32Array;
-  /** Linear RGB, 0 to 1 per channel. */
+  /** sRGB (display-referred), 0 to 1 per channel. */
   readonly color: Float32Array;
   readonly size: Float32Array;
 }
