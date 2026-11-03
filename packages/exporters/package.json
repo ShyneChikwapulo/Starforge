@@ -9,7 +9,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "render": "tsx src/cli.ts"
+    "render": "tsx src/cli.ts",
+    "animate": "tsx src/animate-cli.ts"
   },
   "dependencies": {
     "@starforge/core": "workspace:*",
