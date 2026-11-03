@@ -1,6 +1,7 @@
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { encodePng } from './png';
+import { unfilterScanlines } from './test-helpers';
 
 function readChunks(png: Uint8Array) {
   const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
@@ -37,8 +38,26 @@ describe('encodePng', () => {
 
   it('round-trips the pixel data through zlib', () => {
     const idat = readChunks(encodePng(2, 2, PIXELS))[1].data;
-    const raw = Array.from(inflateSync(idat));
-    expect(raw).toEqual([0, 255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 128]);
+    expect(unfilterScanlines(inflateSync(idat), 2, 2)).toEqual(Array.from(PIXELS));
+  });
+
+  it('round-trips larger images and actually uses adaptive filters', () => {
+    const width = 17;
+    const height = 9;
+    const pixels = new Uint8Array(width * height * 4);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const o = (y * width + x) * 4;
+        pixels[o] = x * 7;
+        pixels[o + 1] = y * 13;
+        pixels[o + 2] = (x * y) & 255;
+        pixels[o + 3] = 255;
+      }
+    }
+    const raw = inflateSync(readChunks(encodePng(width, height, pixels))[1].data);
+    expect(unfilterScanlines(raw, width, height)).toEqual(Array.from(pixels));
+    const filters = Array.from({ length: height }, (_, y) => raw[y * (width * 4 + 1)]);
+    expect(filters.some((type) => type !== 0)).toBe(true);
   });
 
   it('ends with the canonical IEND chunk, including its CRC', () => {

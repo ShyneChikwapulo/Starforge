@@ -1,6 +1,7 @@
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { encodeApng } from './apng';
+import { unfilterScanlines } from './test-helpers';
 
 function readChunks(png: Uint8Array) {
   const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
@@ -60,8 +61,8 @@ describe('encodeApng', () => {
     const chunks = readChunks(encode());
     const idat = chunks.find((c) => c.type === 'IDAT')!.data;
     const fdats = chunks.filter((c) => c.type === 'fdAT').map((c) => c.data.subarray(4));
-    const decoded = [idat, ...fdats].map((data) => Array.from(inflateSync(data)));
-    expect(decoded).toEqual(FRAMES.map((pixels) => [0, ...pixels]));
+    const decoded = [idat, ...fdats].map((data) => unfilterScanlines(inflateSync(data), 2, 1));
+    expect(decoded).toEqual(FRAMES.map((pixels) => Array.from(pixels)));
   });
 
   it('encodes the frame delay from fps', () => {
