@@ -1,14 +1,15 @@
 {
-  "name": "Starforge",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "starforge",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Turn GitHub activity into deterministic 3D particle visuals for your profile README",
+  "license": "MIT",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run --passWithNoTests",
+    "format": "prettier --write ."
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
@@ -16,12 +17,5 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.16.1",
-  "type": "module",
-  "devDependencies": {
-    "eslint": "^10.14.0",
-    "prettier": "^3.9.10",
-    "typescript": "^7.0.2",
-    "vitest": "^5.0.5"
-  }
+  "packageManager": "pnpm@12.16.1"
 }
