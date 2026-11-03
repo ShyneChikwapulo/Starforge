@@ -107,7 +107,7 @@ export function buildGalaxy(metrics: Metrics, options: PresetOptions = {}): Pres
       activity * RING_HEIGHT,
       Math.sin(angle) * RING_RADIUS,
       scaleColor(ringColor, 0.25 + 0.75 * activity),
-      0.6 + 2.4 * activity,
+      0.5 + 1.6 * activity,
     );
   });
 
