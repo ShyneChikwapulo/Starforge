@@ -9,5 +9,9 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@starforge/core": "workspace:*",
+    "@starforge/github-data": "workspace:*"
   }
 }
