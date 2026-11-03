@@ -179,6 +179,18 @@ importers:
         specifier: ^5.0.5
         version: 5.0.5(vite@8.3.5)
 
+  packages/core: {}
+
+  packages/exporters: {}
+
+  packages/github-data: {}
+
+  packages/presets: {}
+
+  packages/renderer-canvas: {}
+
+  packages/renderer-webgl: {}
+
 packages:
 
   '@cacheable/memory@2.2.0':
