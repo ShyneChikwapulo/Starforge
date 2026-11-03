@@ -19,6 +19,7 @@ async function main(): Promise<void> {
   const frameCount = Number(option('frames', '60'));
   const fps = Number(option('fps', '15'));
   const seed = Number(option('seed', '1'));
+  const bloom = Number(option('bloom', '0.9'));
   const transparent = args.includes('--transparent');
 
   const metrics = parseMetrics(JSON.parse(await readFile(metricsPath, 'utf8')));
@@ -30,6 +31,7 @@ async function main(): Promise<void> {
     frames: frameCount,
     seed,
     background: transparent ? null : undefined,
+    bloom: bloom > 0 ? { strength: bloom, levels: 4 } : null,
   });
   const rendered = Date.now();
   const apng = encodeApng({ width, height, frames: frames.map((f) => f.data), fps });

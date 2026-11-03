@@ -5,6 +5,7 @@ import {
   DEFAULT_CAMERA,
   orbitCamera,
   renderFrame,
+  type BloomOptions,
   type Camera,
   type Frame,
 } from '@starforge/renderer-canvas';
@@ -24,9 +25,12 @@ export interface LoopOptions {
   /** RGB 0..1, or null for a transparent background. Default: a deep navy. */
   background?: [number, number, number] | null;
   exposure?: number;
+  /** Glow around bright particles. Pass null to turn bloom off. Default: moderate bloom. */
+  bloom?: BloomOptions | null;
 }
 
 const DEFAULT_BACKGROUND: [number, number, number] = [0.02, 0.03, 0.06];
+const DEFAULT_BLOOM: BloomOptions = { strength: 0.9, levels: 4 };
 
 /**
  * Render a seamlessly looping galaxy. The camera makes exactly one full orbit, and the
@@ -61,6 +65,7 @@ export function renderGalaxyLoop(metrics: Metrics, options: LoopOptions): Frame[
       camera: orbitCamera(camera, i / length),
       background,
       exposure: options.exposure ?? 1.4,
+      bloom: options.bloom === undefined ? DEFAULT_BLOOM : (options.bloom ?? undefined),
     });
   });
 }
