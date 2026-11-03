@@ -8,7 +8,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "render": "tsx src/cli.ts"
   },
   "dependencies": {
     "@starforge/core": "workspace:*",
