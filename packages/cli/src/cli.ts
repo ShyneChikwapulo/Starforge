@@ -1,8 +1,9 @@
-import { readFile } from 'node:fs/promises';
+import { appendFile, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseMetrics } from '@starforge/github-data';
 import { loadConfig } from './config';
 import { generate } from './generate';
+import { formatStepOutputs } from './outputs';
 
 const USAGE = `Usage: starforge generate [--config <file>] [--metrics <file>]
 
@@ -38,6 +39,9 @@ async function main(): Promise<void> {
   console.log(`Wrote ${result.poster}`);
   if (result.metrics) console.log(`Metrics snapshot: ${result.metrics}`);
   if (result.legend) console.log(`Wrote ${result.legend}`);
+  if (process.env.GITHUB_OUTPUT) {
+    await appendFile(process.env.GITHUB_OUTPUT, formatStepOutputs(result));
+  }
   console.log(
     `${(result.animationBytes / 1_000_000).toFixed(2)} MB animation, ` +
       `done in ${((Date.now() - started) / 1000).toFixed(1)}s`,

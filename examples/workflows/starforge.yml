@@ -17,11 +17,12 @@ jobs:
       - uses: ShyneChikwapulo/Starforge@main
         with:
           token: ${{ secrets.STARFORGE_TOKEN || github.token }}
+          publish-branch: starforge-assets
 
-      - name: Commit changes
+      - name: Commit the metrics snapshot
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add starforge
-          git diff --cached --quiet || git commit -m "chore: update Starforge visuals"
+          git add starforge/metrics.json
+          git diff --cached --quiet || git commit -m "chore: update Starforge metrics"
           git push

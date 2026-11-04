@@ -49,6 +49,15 @@ describe('renderLegendSvg', () => {
     expect(svg).not.toContain('1 stars');
   });
 
+  it('keeps a single row when the chips fit', () => {
+    expect(renderLegendSvg(sample)).toContain('height="132"');
+  });
+
+  it('wraps to a second row instead of overflowing', () => {
+    const names = Array.from({ length: 6 }, (_, i) => `ABCDEFGHIJ${i}`);
+    expect(renderLegendSvg(withLanguages(names))).toContain('height="156"');
+  });
+
   it('is deterministic', () => {
     expect(renderLegendSvg(sample)).toBe(renderLegendSvg(sample));
   });

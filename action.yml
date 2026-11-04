@@ -12,6 +12,12 @@ inputs:
   token:
     description: GitHub token used to read your public activity.
     default: ${{ github.token }}
+  publish-branch:
+    description: >-
+      Publish the generated images to this branch as a single force-pushed commit, so daily
+      updates never add history to your main branch. Leave empty to only write files to the
+      working tree. The workflow needs "contents: write" permission.
+    default: ''
 
 runs:
   using: composite
@@ -34,7 +40,24 @@ runs:
       run: pnpm install --frozen-lockfile --filter "@starforge/cli..."
 
     - name: Generate visuals
+      id: generate
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
-      run: pnpm --dir "${{ github.action_path }}" --filter @starforge/cli starforge generate --config "${{ inputs.config }}"
+        CONFIG_PATH: ${{ inputs.config }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: pnpm --dir "$ACTION_PATH" --filter @starforge/cli starforge generate --config "$CONFIG_PATH"
+
+    - name: Publish assets to a branch
+      if: ${{ inputs.publish-branch != '' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        ACTION_PATH: ${{ github.action_path }}
+        GENERATED_DIR: ${{ steps.generate.outputs.directory }}
+        GENERATED_FILES: ${{ steps.generate.outputs.files }}
+        PUBLISH_BRANCH: ${{ inputs.publish-branch }}
+      run: |
+        read -r -a files <<< "$GENERATED_FILES"
+        bash "$ACTION_PATH/scripts/publish-assets.sh" "$GENERATED_DIR" "$PUBLISH_BRANCH" "${files[@]}"

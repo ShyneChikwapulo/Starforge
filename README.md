@@ -23,12 +23,22 @@ viewer are planned.
    ```html
    <p align="center">
      <img
-       src="starforge/galaxy.webp"
+       src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/galaxy.webp"
        alt="Animated galaxy built from my GitHub activity. Each spiral arm is a programming language, each bright star a repository, and the outer ring shows the last year of daily activity."
        width="800"
      />
    </p>
    ```
+
+## Where the images live
+
+The animation changes every day, and committing a new binary daily would bloat your repository
+by hundreds of megabytes a year. With `publish-branch: starforge-assets` (as in the example
+workflow), the Action publishes the images to that branch as a **single force-pushed commit**,
+so no history accumulates. Only the small `starforge/metrics.json` snapshot is committed to your
+main branch. Point your README at the raw URLs shown below.
+
+The `publish-branch` input needs the workflow permission `contents: write`.
 
 ## Add the legend
 
@@ -37,13 +47,13 @@ Put the legend directly under the animation so visitors can see that it is data:
 ```html
 <p align="center">
   <img
-    src="starforge/galaxy.webp"
+    src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/galaxy.webp"
     alt="Animated galaxy built from my GitHub activity"
     width="800"
   />
   <br />
   <img
-    src="starforge/galaxy-legend.svg"
+    src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/galaxy-legend.svg"
     alt="Legend for the galaxy: my commits, repositories, stars and top languages"
     width="800"
   />
