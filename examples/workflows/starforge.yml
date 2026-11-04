@@ -24,5 +24,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add starforge/metrics.json
-          git diff --cached --quiet || git commit -m "chore: update Starforge metrics"
-          git push
+          if git diff --cached --quiet; then
+            echo "Metrics unchanged; nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore: update Starforge metrics"
+          for attempt in 1 2 3; do
+            if git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME"; then
+              exit 0
+            fi
+            echo "Push attempt $attempt failed; retrying..."
+            sleep $((attempt * 5))
+          done
+          echo "Could not push the metrics snapshot." >&2
+          exit 1
