@@ -1,0 +1,11 @@
+{
+  "username": "your-github-login",
+  "outputDir": "starforge",
+  "width": 800,
+  "height": 400,
+  "frames": 60,
+  "fps": 15,
+  "quality": 80,
+  "bloom": 0.9,
+  "seed": 1
+}
