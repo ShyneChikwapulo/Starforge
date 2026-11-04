@@ -37,6 +37,7 @@ async function main(): Promise<void> {
   console.log(`Wrote ${result.animation}`);
   console.log(`Wrote ${result.poster}`);
   if (result.metrics) console.log(`Metrics snapshot: ${result.metrics}`);
+  if (result.legend) console.log(`Wrote ${result.legend}`);
   console.log(
     `${(result.animationBytes / 1_000_000).toFixed(2)} MB animation, ` +
       `done in ${((Date.now() - started) / 1000).toFixed(1)}s`,

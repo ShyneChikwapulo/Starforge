@@ -16,7 +16,7 @@ const CORE_RADIUS = 0.6;
 const RING_RADIUS = GALAXY_RADIUS + 2;
 const RING_HEIGHT = 2.5;
 const TWIST = 3.2;
-const MAX_ARMS = 6;
+export const GALAXY_MAX_ARMS = 6;
 const MAX_REPOS = 100;
 const DEFAULT_PARTICLES = 6000;
 const FALLBACK_COLOR = '#8b949e';
@@ -31,7 +31,7 @@ interface Arm {
 }
 
 function buildArms(metrics: Metrics): Arm[] {
-  const top = metrics.languages.slice(0, MAX_ARMS);
+  const top = metrics.languages.slice(0, GALAXY_MAX_ARMS);
   if (top.length === 0) {
     return [{ name: null, color: hexToRgb(FALLBACK_COLOR), weight: 1, angle: 0 }];
   }
