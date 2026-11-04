@@ -1,4 +1,5 @@
 import type { ParticleState } from '@starforge/core';
+import { applyBloom, type BloomOptions } from './bloom';
 
 export interface Camera {
   /** Rotation around the vertical axis, radians. A full 2π turn returns to the start. */
@@ -21,6 +22,8 @@ export interface RenderOptions {
   pointScale?: number;
   /** Multiplies accumulated light before tone mapping. Default 1. */
   exposure?: number;
+  /** Glow around bright particles. Off when omitted. */
+  bloom?: BloomOptions;
 }
 
 export interface Frame {
@@ -113,6 +116,8 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
       }
     }
   }
+
+  if (options.bloom) applyBloom(accum, width, height, options.bloom);
 
   const data = new Uint8ClampedArray(width * height * 4);
   for (let pixel = 0; pixel < width * height; pixel++) {
