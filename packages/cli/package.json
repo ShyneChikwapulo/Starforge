@@ -14,6 +14,7 @@
   "dependencies": {
     "@starforge/exporters": "workspace:*",
     "@starforge/github-data": "workspace:*",
+    "tsx": "^4.23.15",
     "zod": "^4.6.7"
   }
 }
