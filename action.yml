@@ -1,0 +1,40 @@
+name: Starforge
+description: Turn your GitHub activity into an animated 3D particle visual for your profile README.
+author: Shine Chikwapulo
+branding:
+  icon: star
+  color: purple
+
+inputs:
+  config:
+    description: Path to your Starforge config file, relative to the repository root.
+    default: starforge.config.json
+  token:
+    description: GitHub token used to read your public activity.
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    - name: Install libwebp
+      shell: bash
+      run: sudo apt-get update -qq && sudo apt-get install -y -qq webp
+
+    - name: Install pnpm
+      shell: bash
+      run: npm install -g pnpm@12.16.1
+
+    - name: Install Starforge
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: pnpm install --frozen-lockfile --filter "@starforge/cli..."
+
+    - name: Generate visuals
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: pnpm --dir "${{ github.action_path }}" --filter @starforge/cli starforge generate --config "${{ inputs.config }}"
