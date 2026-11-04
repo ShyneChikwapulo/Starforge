@@ -4,6 +4,7 @@ import { parseMetrics } from '@starforge/github-data';
 import { renderGalaxyLoop } from './animation';
 import { encodeApng } from './apng';
 import { encodePng } from './png';
+import { encodeWebp } from './webp';
 
 const args = process.argv.slice(2).filter((a) => a !== '--');
 function option(name: string, fallback: string): string {
@@ -13,17 +14,25 @@ function option(name: string, fallback: string): string {
 
 async function main(): Promise<void> {
   const base = process.env.INIT_CWD ?? process.cwd();
+  const format = option('format', 'webp');
+  if (format !== 'webp' && format !== 'apng') {
+    throw new Error(`--format must be "webp" or "apng", got "${format}"`);
+  }
   const metricsPath = resolve(base, option('metrics', '.starforge/metrics.json'));
-  const outPath = resolve(base, option('out', '.starforge/galaxy-animated.png'));
+  const outPath = resolve(
+    base,
+    option('out', format === 'webp' ? '.starforge/galaxy.webp' : '.starforge/galaxy-animated.png'),
+  );
   const width = Number(option('width', '800'));
   const height = Number(option('height', '400'));
   const frameCount = Number(option('frames', '60'));
   const fps = Number(option('fps', '15'));
   const seed = Number(option('seed', '1'));
   const bloom = Number(option('bloom', '0.9'));
+  const quality = Number(option('quality', '80'));
   const framesDir = option('frames-dir', '');
   const transparent = args.includes('--transparent');
-  const skipApng = args.includes('--no-apng');
+  const skipEncode = args.includes('--no-encode');
 
   const metrics = parseMetrics(JSON.parse(await readFile(metricsPath, 'utf8')));
 
@@ -52,15 +61,20 @@ async function main(): Promise<void> {
     console.log(`Wrote ${frames.length} PNG frames to ${dir}`);
   }
 
-  if (!skipApng) {
+  if (!skipEncode) {
     const encodeStart = Date.now();
-    const apng = encodeApng({ width, height, frames: frames.map((f) => f.data), fps });
+    const rgba = frames.map((f) => f.data);
+    const bytes =
+      format === 'webp'
+        ? await encodeWebp({ width, height, frames: rgba, fps, quality })
+        : encodeApng({ width, height, frames: rgba, fps });
     await mkdir(dirname(outPath), { recursive: true });
-    await writeFile(outPath, apng);
+    await writeFile(outPath, bytes);
     console.log(`Wrote ${outPath}`);
     console.log(
-      `${frameCount} frames at ${width}x${height}, ${fps} fps (${(frameCount / fps).toFixed(1)}s loop), ` +
-        `${(apng.length / 1_000_000).toFixed(2)} MB, encode ${((Date.now() - encodeStart) / 1000).toFixed(1)}s`,
+      `${format.toUpperCase()}: ${frameCount} frames at ${width}x${height}, ${fps} fps ` +
+        `(${(frameCount / fps).toFixed(1)}s loop), ${(bytes.length / 1_000_000).toFixed(2)} MB, ` +
+        `encode ${((Date.now() - encodeStart) / 1000).toFixed(1)}s`,
     );
   }
 }
