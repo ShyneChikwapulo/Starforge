@@ -21,6 +21,7 @@ async function main(): Promise<void> {
   const seed = Number(option('seed', '1'));
   const warmup = Number(option('warmup', '120'));
   const turn = Number(option('turn', '0'));
+  const bloom = Number(option('bloom', '0'));
 
   const metrics = parseMetrics(JSON.parse(await readFile(metricsPath, 'utf8')));
   const { state, behaviours } = buildGalaxy(metrics, { seed });
@@ -32,6 +33,7 @@ async function main(): Promise<void> {
     camera: orbitCamera(DEFAULT_CAMERA, turn),
     background: [0.02, 0.03, 0.06],
     exposure: 1.4,
+    bloom: bloom > 0 ? { strength: bloom, levels: 4 } : undefined,
   });
 
   await mkdir(dirname(outPath), { recursive: true });
