@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { renderLegendSvg } from '@starforge/exporters';
 import { join, resolve } from 'node:path';
 import { encodeApng, encodePng, encodeWebp, renderGalaxyLoop } from '@starforge/exporters';
 import { collectMetrics, createGraphQLClient, type Metrics } from '@starforge/github-data';
@@ -22,6 +23,8 @@ export interface GenerateResult {
   poster: string;
   /** Present when `saveMetrics` is enabled. */
   metrics?: string;
+  /** Present when `legend` is enabled. */
+  legend?: string;
   animationBytes: number;
 }
 
@@ -86,6 +89,12 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   await writeFile(animationPath, animation);
   await writeFile(posterPath, poster);
 
+  let legendPath: string | undefined;
+  if (config.legend) {
+    legendPath = join(directory, 'galaxy-legend.svg');
+    await writeFile(legendPath, renderLegendSvg(metrics, { width: config.width }));
+  }
+
   let metricsPath: string | undefined;
   if (config.saveMetrics) {
     metricsPath = join(directory, 'metrics.json');
@@ -97,6 +106,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     animation: animationPath,
     poster: posterPath,
     metrics: metricsPath,
+    legend: legendPath,
     animationBytes: animation.length,
   };
 }
