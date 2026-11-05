@@ -52,7 +52,10 @@ export function renderOverlay(container: HTMLElement, metrics: Metrics, sourceLa
     'p',
     'Arms are languages · bright stars are repositories, sized by stars · the outer ring is one dot per day, taller means busier',
   );
-  const source = element('p', `Data: ${sourceLabel} · drag to orbit, scroll to zoom`);
+  const source = element(
+    'p',
+    `Data: ${sourceLabel} · drag to orbit, scroll to zoom, hover or tap a star or ring dot for details`,
+  );
 
   container.replaceChildren(title, stats, languages, key, source);
 }
