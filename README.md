@@ -60,6 +60,30 @@ Put the legend directly under the animation so visitors can see that it is data:
 </p>
 ```
 
+## Explore in 3D
+
+The animation is a compact teaser. The interactive viewer renders the same data in real time,
+with far more particles, and you can drag to orbit and scroll to zoom. Link to it from your
+README with your own repository in the query string:
+
+```markdown
+[Explore in 3D →](https://shynechikwapulo.github.io/Starforge/?repo=YOUR-LOGIN/YOUR-REPO)
+```
+
+The viewer reads `starforge/metrics.json` from that repository on GitHub, so nothing is uploaded
+anywhere else. Optional parameters:
+
+| Parameter                         | Default              | Meaning                                             |
+| --------------------------------- | -------------------- | --------------------------------------------------- |
+| `repo=owner/name`                 | none                 | Repository containing `starforge/metrics.json`      |
+| `user=login`                      | none                 | Shortcut for `repo=login/login` (your profile repo) |
+| `branch=name`                     | `main`               | Branch to read the metrics from                     |
+| `particles=n`                     | `12000`              | Particle count (1,000 to 60,000)                    |
+| `seed=n`                          | `1`                  | Changes the scattered dust, not your data           |
+| `bloom`, `exposure`, `brightness` | `0.35`, `1.2`, `0.9` | Lighting                                            |
+
+With no parameters it shows sample data.
+
 ## What you are looking at
 
 | Element                | Data it encodes                                                                                         |
