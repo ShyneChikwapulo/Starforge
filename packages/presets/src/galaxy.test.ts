@@ -75,3 +75,37 @@ describe('buildGalaxy', () => {
     expect(finite(state.position)).toBe(true);
   });
 });
+
+describe('buildGalaxy entities', () => {
+  const { entities, state } = buildGalaxy(sample, { particleCount: 2000 });
+  const days = entities.filter((entity) => entity.kind === 'day');
+  const repositories = entities.filter((entity) => entity.kind === 'repository');
+
+  it('describes every calendar day and every repository', () => {
+    expect(days).toHaveLength(sample.contributions.calendar.length);
+    expect(repositories).toHaveLength(sample.repositories.length);
+  });
+
+  it('points every entity at its own real particle', () => {
+    for (const entity of entities) {
+      expect(entity.particle).toBeGreaterThanOrEqual(0);
+      expect(entity.particle).toBeLessThan(state.count);
+    }
+    expect(new Set(entities.map((entity) => entity.particle)).size).toBe(entities.length);
+  });
+
+  it('labels days with their date and contribution count', () => {
+    const first = sample.contributions.calendar[0];
+    expect(days[0]?.title).toBe(first.date);
+    expect(days[0]?.detail).toContain(String(first.count));
+  });
+
+  it('labels repositories with their stars and language', () => {
+    const top = [...sample.repositories].sort((a, b) => b.stars - a.stars)[0];
+    const entity = repositories.find((candidate) => candidate.title === top.name);
+    expect(entity?.detail).toContain(top.primaryLanguage ?? 'no language');
+    expect(entity?.detail).toContain(
+      top.stars === 1 ? '1 star' : `${top.stars.toLocaleString('en-US')} stars`,
+    );
+  });
+});
