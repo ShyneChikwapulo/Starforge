@@ -13,6 +13,7 @@ import {
   Scene,
   ShaderMaterial,
   Vector2,
+  Vector3,
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -26,6 +27,10 @@ ColorManagement.enabled = false;
 
 /** Particle count the base brightness and sprite size were tuned for. */
 const REFERENCE_PARTICLES = 6000;
+/** How close, in CSS pixels, the pointer must be to a data particle to select it. */
+const HIT_RADIUS = 22;
+/** A touch that moves less than this many pixels counts as a tap, not a drag. */
+const TAP_SLOP = 8;
 
 const vertexShader = /* glsl */ `
   attribute vec3 aColor;
@@ -72,11 +77,26 @@ export interface ViewerOptions {
   autoRotate?: boolean;
 }
 
+export interface HoverHit {
+  /** Index into the list passed to setHoverTargets. */
+  index: number;
+  /** Where that particle is on screen, in viewport pixels. */
+  x: number;
+  y: number;
+}
+
 export interface Viewer {
   /** Show these particles. The viewer reads their positions every frame. */
   setParticles(state: ParticleState): void;
   /** Called once per frame before rendering, for example to advance a simulation. */
   onFrame(callback: (() => void) | null): void;
+  /** Which particles can be hovered or tapped, as indices into the particle state. */
+  setHoverTargets(particles: number[]): void;
+  /**
+   * Called every frame while a target is under the pointer or finger, and once with null
+   * when it stops being selected. Auto-rotation pauses while something is selected.
+   */
+  onHover(callback: ((hit: HoverHit | null) => void) | null): void;
   /** Call after the canvas changes size. */
   resize(): void;
   dispose(): void;
@@ -85,6 +105,7 @@ export interface Viewer {
 export function createViewer(options: ViewerOptions): Viewer {
   const { canvas } = options;
   const brightness = options.brightness ?? 0.9;
+  const autoRotate = options.autoRotate ?? true;
 
   const renderer = new WebGLRenderer({ canvas, antialias: false });
   renderer.outputColorSpace = LinearSRGBColorSpace;
@@ -100,7 +121,7 @@ export function createViewer(options: ViewerOptions): Viewer {
 
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
-  controls.autoRotate = options.autoRotate ?? true;
+  controls.autoRotate = autoRotate;
   controls.autoRotateSpeed = 0.6;
   controls.minDistance = 8;
   controls.maxDistance = 70;
@@ -128,6 +149,88 @@ export function createViewer(options: ViewerOptions): Viewer {
 
   let points: Points | null = null;
   let frameCallback: (() => void) | null = null;
+
+  let hoverTargets: number[] = [];
+  let hoverCallback: ((hit: HoverHit | null) => void) | null = null;
+  let pointer: { x: number; y: number } | null = null;
+  let pointerKind = 'mouse';
+  let downAt: { x: number; y: number } | null = null;
+  let hadHit = false;
+  const projected = new Vector3();
+
+  const local = (event: PointerEvent): { x: number; y: number } => {
+    const rect = canvas.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  };
+
+  const onPointerMove = (event: PointerEvent): void => {
+    if (event.pointerType === 'touch') return;
+    pointerKind = event.pointerType;
+    pointer = event.buttons === 0 ? local(event) : null;
+  };
+
+  const onPointerLeave = (event: PointerEvent): void => {
+    if (event.pointerType !== 'touch') pointer = null;
+  };
+
+  const onPointerDown = (event: PointerEvent): void => {
+    pointerKind = event.pointerType;
+    downAt = { x: event.clientX, y: event.clientY };
+    pointer = null;
+  };
+
+  const onPointerUp = (event: PointerEvent): void => {
+    if (event.pointerType === 'touch') {
+      const tapped =
+        downAt !== null &&
+        Math.hypot(event.clientX - downAt.x, event.clientY - downAt.y) < TAP_SLOP;
+      pointer = tapped ? local(event) : null;
+    } else {
+      pointer = local(event);
+    }
+    downAt = null;
+  };
+
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerleave', onPointerLeave);
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointerup', onPointerUp);
+
+  function pick(): HoverHit | null {
+    if (!pointer || !points || hoverTargets.length === 0) return null;
+    const rect = canvas.getBoundingClientRect();
+    const positions = (points.geometry.getAttribute('position') as BufferAttribute)
+      .array as Float32Array;
+    camera.updateMatrixWorld();
+
+    let best: HoverHit | null = null;
+    let bestDistance = HIT_RADIUS;
+    for (let k = 0; k < hoverTargets.length; k++) {
+      const offset = hoverTargets[k] * 3;
+      projected
+        .set(positions[offset], positions[offset + 1], positions[offset + 2])
+        .project(camera);
+      if (projected.z > 1) continue;
+      const x = (projected.x * 0.5 + 0.5) * rect.width;
+      const y = (-projected.y * 0.5 + 0.5) * rect.height;
+      const distance = Math.hypot(x - pointer.x, y - pointer.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = { index: k, x: rect.left + x, y: rect.top + y };
+      }
+    }
+    return best;
+  }
+
+  function updateHover(): void {
+    if (!hoverCallback) return;
+    const hit = pick();
+    controls.autoRotate = hit ? false : autoRotate;
+    canvas.style.cursor = hit ? 'pointer' : '';
+    if (!hit && pointerKind === 'touch') pointer = null;
+    if (hit || hadHit) hoverCallback(hit);
+    hadHit = hit !== null;
+  }
 
   function resize(): void {
     const width = Math.max(1, canvas.clientWidth);
@@ -165,6 +268,7 @@ export function createViewer(options: ViewerOptions): Viewer {
     if (points) (points.geometry.getAttribute('position') as BufferAttribute).needsUpdate = true;
     controls.update();
     material.uniforms.uDistance.value = camera.position.length();
+    updateHover();
     composer.render();
   });
 
@@ -173,9 +277,20 @@ export function createViewer(options: ViewerOptions): Viewer {
     onFrame(callback) {
       frameCallback = callback;
     },
+    setHoverTargets(particles) {
+      hoverTargets = particles;
+    },
+    onHover(callback) {
+      hoverCallback = callback;
+      if (!callback) hadHit = false;
+    },
     resize,
     dispose() {
       renderer.setAnimationLoop(null);
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerleave', onPointerLeave);
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointerup', onPointerUp);
       controls.dispose();
       points?.geometry.dispose();
       material.dispose();
