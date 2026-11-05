@@ -9,7 +9,7 @@ import {
 } from '@starforge/core';
 import type { Metrics } from '@starforge/github-data';
 import { hashString, hexToRgb, logScale, rootWeights, scaleColor, type Rgb } from './scale';
-import type { Preset, PresetOptions, PresetResult } from './types';
+import type { Entity, Preset, PresetOptions, PresetResult } from './types';
 
 const GALAXY_RADIUS = 10;
 const CORE_RADIUS = 0.6;
@@ -21,6 +21,9 @@ const MAX_REPOS = 100;
 const DEFAULT_PARTICLES = 6000;
 const FALLBACK_COLOR = '#8b949e';
 const RING_COLOR = '#ffd27a';
+
+const count = (n: number, one: string, many: string): string =>
+  `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 
 interface Arm {
   name: string | null;
@@ -78,6 +81,8 @@ function put(
  * - one bright star per repository (size = stars, log-scaled; older repos nearer the core)
  * - one ring particle per calendar day (height and brightness = that day's activity)
  * - dust fills the arms
+ *
+ * Stars and ring particles are also returned as entities so a viewer can explain them.
  */
 export function buildGalaxy(metrics: Metrics, options: PresetOptions = {}): PresetResult {
   const seed = options.seed ?? 1;
@@ -92,14 +97,20 @@ export function buildGalaxy(metrics: Metrics, options: PresetOptions = {}): Pres
   const requested = options.particleCount ?? DEFAULT_PARTICLES;
   const dustCount = Math.max(0, requested - calendar.length - repos.length);
   const state = createParticleState(calendar.length + repos.length + dustCount);
+  const entities: Entity[] = [];
   let index = 0;
 
-  // Activity ring: one particle per day.
   const maxDay = calendar.reduce((max, day) => Math.max(max, day.count), 0);
   const ringColor = hexToRgb(RING_COLOR);
   calendar.forEach((day, i) => {
     const activity = logScale(day.count, maxDay, 10);
     const angle = (i / calendar.length) * Math.PI * 2;
+    entities.push({
+      particle: index,
+      kind: 'day',
+      title: day.date,
+      detail: count(day.count, 'contribution', 'contributions'),
+    });
     put(
       state,
       index++,
@@ -111,7 +122,6 @@ export function buildGalaxy(metrics: Metrics, options: PresetOptions = {}): Pres
     );
   });
 
-  // Repository stars, placed on their language's arm.
   const maxStars = repos.reduce((max, repo) => Math.max(max, repo.stars), 0);
   const languageColor = new Map(
     metrics.languages.map((l) => [l.name, hexToRgb(l.color, FALLBACK_COLOR)] as const),
@@ -126,6 +136,17 @@ export function buildGalaxy(metrics: Metrics, options: PresetOptions = {}): Pres
     const baseColor =
       (repo.primaryLanguage ? languageColor.get(repo.primaryLanguage) : undefined) ??
       hexToRgb(FALLBACK_COLOR);
+    entities.push({
+      particle: index,
+      kind: 'repository',
+      title: repo.name,
+      detail: [
+        count(repo.stars, 'star', 'stars'),
+        repo.primaryLanguage ?? 'no language',
+        ...(repo.isFork ? ['fork'] : []),
+        ...(repo.isArchived ? ['archived'] : []),
+      ].join(' · '),
+    });
     put(
       state,
       index++,
@@ -137,7 +158,6 @@ export function buildGalaxy(metrics: Metrics, options: PresetOptions = {}): Pres
     );
   });
 
-  // Dust along the arms.
   for (let n = 0; n < dustCount; n++) {
     const arm = pickArm(arms, rng());
     const u = rng();
@@ -166,6 +186,7 @@ export function buildGalaxy(metrics: Metrics, options: PresetOptions = {}): Pres
   return {
     state,
     seed,
+    entities,
     behaviours: [
       spring({ stiffness: 6, damping: 4 }),
       jitter({ strength: 1.2 }),

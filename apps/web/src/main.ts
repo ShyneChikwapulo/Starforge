@@ -5,10 +5,13 @@ import { buildGalaxy } from '@starforge/presets';
 import { createViewer } from '@starforge/renderer-webgl';
 import { renderOverlay } from './overlay';
 import { parseViewerParams, type MetricsSource } from './params';
+import { createTooltip } from './tooltip';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene')!;
 const overlay = document.querySelector<HTMLElement>('#overlay')!;
 const status = document.querySelector<HTMLElement>('#status')!;
+const marker = document.querySelector<HTMLElement>('#marker')!;
+const tip = document.querySelector<HTMLElement>('#tooltip')!;
 
 async function loadMetrics(source: MetricsSource): Promise<{ metrics: Metrics; label: string }> {
   if (source.kind === 'sample') return { metrics: createSampleMetrics(), label: 'sample data' };
@@ -38,7 +41,7 @@ async function main(): Promise<void> {
   try {
     const { metrics, label } = await loadMetrics(params.source);
 
-    const { state, behaviours, seed } = buildGalaxy(metrics, {
+    const { state, behaviours, seed, entities } = buildGalaxy(metrics, {
       seed: params.seed,
       particleCount: params.particles,
     });
@@ -53,6 +56,14 @@ async function main(): Promise<void> {
     });
     viewer.setParticles(state);
     viewer.onFrame(() => simulation.step());
+
+    const tooltip = createTooltip(marker, tip);
+    viewer.setHoverTargets(entities.map((entity) => entity.particle));
+    viewer.onHover((hit) => {
+      if (hit) tooltip.show(entities[hit.index], hit.x, hit.y);
+      else tooltip.hide();
+    });
+
     viewer.resize();
     window.addEventListener('resize', () => viewer.resize());
 
