@@ -9,6 +9,7 @@ import {
   LinearSRGBColorSpace,
   PerspectiveCamera,
   Points,
+  ReinhardToneMapping,
   Scene,
   ShaderMaterial,
   Vector2,
@@ -16,11 +17,15 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 // Starforge colours are display-referred sRGB, so stop three.js from converting them.
 ColorManagement.enabled = false;
+
+/** Particle count the base brightness and sprite size were tuned for. */
+const REFERENCE_PARTICLES = 6000;
 
 const vertexShader = /* glsl */ `
   attribute vec3 aColor;
@@ -58,8 +63,11 @@ export interface ViewerOptions {
   canvas: HTMLCanvasElement;
   /** Background as "#rrggbb". Default matches the README renderer. */
   background?: string;
+  /** Strength of the glow around bright particles. Default 0.35. */
   bloomStrength?: number;
-  /** Multiplies every particle's light. Default 0.9. */
+  /** Exposure applied before tone mapping. Default 1.2. */
+  exposure?: number;
+  /** Multiplies every particle's light. Default 0.9. Scaled down automatically for dense scenes. */
   brightness?: number;
   autoRotate?: boolean;
 }
@@ -76,9 +84,12 @@ export interface Viewer {
 
 export function createViewer(options: ViewerOptions): Viewer {
   const { canvas } = options;
+  const brightness = options.brightness ?? 0.9;
 
   const renderer = new WebGLRenderer({ canvas, antialias: false });
   renderer.outputColorSpace = LinearSRGBColorSpace;
+  renderer.toneMapping = ReinhardToneMapping;
+  renderer.toneMappingExposure = options.exposure ?? 1.2;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   const scene = new Scene();
@@ -98,7 +109,7 @@ export function createViewer(options: ViewerOptions): Viewer {
     uniforms: {
       uScale: { value: 1 },
       uDistance: { value: 28 },
-      uGain: { value: options.brightness ?? 0.9 },
+      uGain: { value: brightness },
     },
     vertexShader,
     fragmentShader,
@@ -110,7 +121,10 @@ export function createViewer(options: ViewerOptions): Viewer {
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(new UnrealBloomPass(new Vector2(1, 1), options.bloomStrength ?? 0.9, 0.6, 0));
+  composer.addPass(
+    new UnrealBloomPass(new Vector2(1, 1), options.bloomStrength ?? 0.35, 0.5, 0.55),
+  );
+  composer.addPass(new OutputPass());
 
   let points: Points | null = null;
   let frameCallback: (() => void) | null = null;
@@ -124,7 +138,7 @@ export function createViewer(options: ViewerOptions): Viewer {
     camera.updateProjectionMatrix();
     const focalPixels =
       (height * renderer.getPixelRatio()) / 2 / Math.tan((camera.fov * Math.PI) / 360);
-    material.uniforms.uScale.value = 0.3 * focalPixels;
+    material.uniforms.uScale.value = 0.22 * focalPixels;
   }
 
   function setParticles(state: ParticleState): void {
@@ -132,6 +146,9 @@ export function createViewer(options: ViewerOptions): Viewer {
       scene.remove(points);
       points.geometry.dispose();
     }
+    const density = Math.sqrt(REFERENCE_PARTICLES / Math.max(state.count, 1));
+    material.uniforms.uGain.value = brightness * Math.min(density, 1.5);
+
     const geometry = new BufferGeometry();
     const position = new BufferAttribute(state.position, 3);
     position.setUsage(DynamicDrawUsage);

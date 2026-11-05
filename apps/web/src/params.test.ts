@@ -61,3 +61,17 @@ describe('parseViewerParams', () => {
     expect(parseViewerParams('?seed=x').seed).toBe(1);
   });
 });
+
+describe('lighting parameters', () => {
+  it('has calm defaults', () => {
+    expect(parseViewerParams('')).toMatchObject({ bloom: 0.35, exposure: 1.2, brightness: 0.9 });
+  });
+
+  it('clamps values and ignores junk', () => {
+    expect(parseViewerParams('?bloom=50').bloom).toBe(2);
+    expect(parseViewerParams('?bloom=-1').bloom).toBe(0);
+    expect(parseViewerParams('?exposure=abc').exposure).toBe(1.2);
+    expect(parseViewerParams('?brightness=0').brightness).toBe(0.1);
+    expect(parseViewerParams('?brightness=1.5').brightness).toBe(1.5);
+  });
+});

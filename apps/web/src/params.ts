@@ -7,6 +7,9 @@ export interface ViewerParams {
   source: MetricsSource;
   particles: number;
   seed: number;
+  bloom: number;
+  exposure: number;
+  brightness: number;
 }
 
 const NAME = /^[A-Za-z0-9._-]{1,100}$/;
@@ -18,6 +21,12 @@ const failure = (message: string): MetricsSource => ({ kind: 'error', message })
 function clampInt(raw: string | null, fallback: number, min: number, max: number): number {
   if (raw === null) return fallback;
   const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+
+function clampFloat(raw: string | null, fallback: number, min: number, max: number): number {
+  if (raw === null) return fallback;
+  const value = Number.parseFloat(raw);
   return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 }
 
@@ -65,5 +74,8 @@ export function parseViewerParams(search: string): ViewerParams {
     source: resolveSource(query),
     particles: clampInt(query.get('particles'), 12000, 1000, 60000),
     seed: clampInt(query.get('seed'), 1, 0, 1_000_000),
+    bloom: clampFloat(query.get('bloom'), 0.35, 0, 2),
+    exposure: clampFloat(query.get('exposure'), 1.2, 0.2, 3),
+    brightness: clampFloat(query.get('brightness'), 0.9, 0.1, 3),
   };
 }

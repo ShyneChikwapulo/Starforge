@@ -45,7 +45,12 @@ async function main(): Promise<void> {
     const simulation = new Simulation({ state, behaviours, seed });
     simulation.run(60);
 
-    const viewer = createViewer({ canvas });
+    const viewer = createViewer({
+      canvas,
+      bloomStrength: params.bloom,
+      exposure: params.exposure,
+      brightness: params.brightness,
+    });
     viewer.setParticles(state);
     viewer.onFrame(() => simulation.step());
     viewer.resize();
