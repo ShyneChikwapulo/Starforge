@@ -1,0 +1,22 @@
+{
+  "name": "@starforge/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@starforge/core": "workspace:*",
+    "@starforge/github-data": "workspace:*",
+    "@starforge/presets": "workspace:*",
+    "@starforge/renderer-webgl": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^8.3.5"
+  }
+}

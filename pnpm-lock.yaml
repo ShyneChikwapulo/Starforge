@@ -227,6 +227,25 @@ importers:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15))
 
+  apps/web:
+    dependencies:
+      '@starforge/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@starforge/github-data':
+        specifier: workspace:*
+        version: link:../../packages/github-data
+      '@starforge/presets':
+        specifier: workspace:*
+        version: link:../../packages/presets
+      '@starforge/renderer-webgl':
+        specifier: workspace:*
+        version: link:../../packages/renderer-webgl
+    devDependencies:
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)
+
   packages/cli:
     dependencies:
       '@starforge/exporters':
