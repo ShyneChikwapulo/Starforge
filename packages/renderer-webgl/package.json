@@ -9,5 +9,12 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "three": "^0.187.0",
+    "@starforge/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/three": "^0.187.0"
   }
 }
