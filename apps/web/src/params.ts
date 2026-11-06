@@ -1,3 +1,5 @@
+import { PRESET_IDS, type PresetId } from '@starforge/presets';
+
 export type MetricsSource =
   | { kind: 'sample' }
   | { kind: 'url'; url: string; label: string }
@@ -10,6 +12,7 @@ export interface ViewerParams {
   bloom: number;
   exposure: number;
   brightness: number;
+  preset: PresetId;
 }
 
 const NAME = /^[A-Za-z0-9._-]{1,100}$/;
@@ -67,6 +70,12 @@ function resolveSource(query: URLSearchParams): MetricsSource {
   return { kind: 'sample' };
 }
 
+function resolvePreset(raw: string | null): PresetId {
+  return raw !== null && (PRESET_IDS as readonly string[]).includes(raw)
+    ? (raw as PresetId)
+    : 'galaxy';
+}
+
 /** Read the viewer's settings from a URL query string, rejecting anything suspicious. */
 export function parseViewerParams(search: string): ViewerParams {
   const query = new URLSearchParams(search);
@@ -77,5 +86,6 @@ export function parseViewerParams(search: string): ViewerParams {
     bloom: clampFloat(query.get('bloom'), 0.35, 0, 2),
     exposure: clampFloat(query.get('exposure'), 1.2, 0.2, 3),
     brightness: clampFloat(query.get('brightness'), 0.9, 0.1, 3),
+    preset: resolvePreset(query.get('preset')),
   };
 }

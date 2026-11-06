@@ -1,7 +1,7 @@
 import './style.css';
 import { Simulation } from '@starforge/core';
 import { createSampleMetrics, parseMetrics, type Metrics } from '@starforge/github-data';
-import { buildGalaxy } from '@starforge/presets';
+import { PRESET_IDS, getPreset, presets, type PresetId } from '@starforge/presets';
 import { createViewer } from '@starforge/renderer-webgl';
 import { renderOverlay } from './overlay';
 import { parseViewerParams, type MetricsSource } from './params';
@@ -9,6 +9,7 @@ import { createTooltip } from './tooltip';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene')!;
 const overlay = document.querySelector<HTMLElement>('#overlay')!;
+const nav = document.querySelector<HTMLElement>('#presets')!;
 const status = document.querySelector<HTMLElement>('#status')!;
 const marker = document.querySelector<HTMLElement>('#marker')!;
 const tip = document.querySelector<HTMLElement>('#tooltip')!;
@@ -41,10 +42,12 @@ async function main(): Promise<void> {
   try {
     const { metrics, label } = await loadMetrics(params.source);
 
-    const { state, behaviours, seed, entities } = buildGalaxy(metrics, {
-      seed: params.seed,
-      particleCount: params.particles,
-    });
+    const buildOptions = { seed: params.seed, particleCount: params.particles };
+    let current: PresetId = params.preset;
+    const first = getPreset(current)!.build(metrics, buildOptions);
+    const { state, behaviours, seed } = first;
+    let entities = first.entities;
+
     const simulation = new Simulation({ state, behaviours, seed });
     simulation.run(60);
 
@@ -64,10 +67,50 @@ async function main(): Promise<void> {
       else tooltip.hide();
     });
 
+    const buttons = new Map<PresetId, HTMLButtonElement>();
+    const refreshButtons = (): void => {
+      for (const [id, button] of buttons)
+        button.setAttribute('aria-pressed', String(id === current));
+    };
+
+    function switchPreset(id: PresetId): void {
+      if (id === current) return;
+      const next = getPreset(id)!.build(metrics, buildOptions);
+      if (next.state.count !== state.count) return;
+
+      // The spring behaviour pulls every particle toward its new target: that is the morph.
+      state.target.set(next.state.target);
+      state.color.set(next.state.color);
+      state.size.set(next.state.size);
+      viewer.invalidateAppearance();
+
+      entities = next.entities;
+      viewer.setHoverTargets(entities.map((entity) => entity.particle));
+      tooltip.hide();
+
+      current = id;
+      refreshButtons();
+      renderOverlay(overlay, metrics, label, presets[id].legend);
+
+      const url = new URL(window.location.href);
+      url.searchParams.set('preset', id);
+      window.history.replaceState(null, '', url);
+    }
+
+    for (const id of PRESET_IDS) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = presets[id].name;
+      button.addEventListener('click', () => switchPreset(id));
+      buttons.set(id, button);
+      nav.append(button);
+    }
+    refreshButtons();
+
     viewer.resize();
     window.addEventListener('resize', () => viewer.resize());
 
-    renderOverlay(overlay, metrics, label);
+    renderOverlay(overlay, metrics, label, presets[current].legend);
     status.textContent =
       params.source.kind === 'sample'
         ? 'Showing sample data. Add ?user=YOUR-LOGIN or ?repo=owner/name to see real data.'
