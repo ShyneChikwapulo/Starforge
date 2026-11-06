@@ -254,6 +254,9 @@ importers:
       '@starforge/github-data':
         specifier: workspace:*
         version: link:../github-data
+      '@starforge/presets':
+        specifier: workspace:*
+        version: link:../presets
       tsx:
         specifier: ^4.23.15
         version: 4.23.15

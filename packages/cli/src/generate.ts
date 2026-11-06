@@ -1,7 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { getPreset } from '@starforge/presets';
 import { renderLegendSvg } from '@starforge/exporters';
 import { join, resolve } from 'node:path';
-import { encodeApng, encodePng, encodeWebp, renderGalaxyLoop } from '@starforge/exporters';
+import { encodeApng, encodePng, encodeWebp, renderLoop } from '@starforge/exporters';
 import { collectMetrics, createGraphQLClient, type Metrics } from '@starforge/github-data';
 import type { StarforgeConfig } from './config';
 
@@ -59,7 +60,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     });
   }
 
-  const frames = renderGalaxyLoop(metrics, {
+  const preset = getPreset(config.preset)!;
+  const frames = renderLoop(preset, metrics, {
     width: config.width,
     height: config.height,
     frames: config.frames,
@@ -84,15 +86,21 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   const directory = resolve(options.cwd ?? process.cwd(), config.outputDir);
   await mkdir(directory, { recursive: true });
 
-  const animationPath = join(directory, config.format === 'webp' ? 'galaxy.webp' : 'galaxy.png');
-  const posterPath = join(directory, 'galaxy-poster.png');
+  const animationPath = join(
+    directory,
+    `${config.preset}.${config.format === 'webp' ? 'webp' : 'png'}`,
+  );
+  const posterPath = join(directory, `${config.preset}-poster.png`);
   await writeFile(animationPath, animation);
   await writeFile(posterPath, poster);
 
   let legendPath: string | undefined;
   if (config.legend) {
-    legendPath = join(directory, 'galaxy-legend.svg');
-    await writeFile(legendPath, renderLegendSvg(metrics, { width: config.width }));
+    legendPath = join(directory, `${config.preset}-legend.svg`);
+    await writeFile(
+      legendPath,
+      renderLegendSvg(metrics, { width: config.width, caption: preset.caption }),
+    );
   }
 
   let metricsPath: string | undefined;
