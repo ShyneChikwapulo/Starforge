@@ -33,5 +33,7 @@ export interface PresetResult {
 export interface Preset {
   id: string;
   name: string;
+  /** One sentence explaining how the data maps to the picture. */
+  legend: string;
   build(metrics: Metrics, options?: PresetOptions): PresetResult;
 }

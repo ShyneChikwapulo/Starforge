@@ -195,4 +195,10 @@ export function buildGalaxy(metrics: Metrics, options: PresetOptions = {}): Pres
   };
 }
 
-export const galaxyPreset: Preset = { id: 'galaxy', name: 'Galaxy', build: buildGalaxy };
+export const galaxyPreset: Preset = {
+  id: 'galaxy',
+  name: 'Galaxy',
+  legend:
+    'Arms are languages · bright stars are repositories, sized by stars · the outer ring is one dot per day, taller means busier',
+  build: buildGalaxy,
+};
