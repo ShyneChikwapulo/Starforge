@@ -6,9 +6,13 @@ export interface LegendOptions {
   width?: number;
   /** Background as "#rrggbb". Default matches the galaxy renderer's background. */
   background?: string;
+  /** One line explaining the encodings. Default describes the galaxy preset. */
+  caption?: string;
 }
 
 const BASE_HEIGHT = 132;
+const DEFAULT_CAPTION =
+  'Arms: languages · Stars: repositories, sized by stars · Ring: one dot per day, taller = busier';
 const ROW_HEIGHT = 24;
 const CHAR_WIDTH = 7.6;
 const FALLBACK_COLOR = '#8b949e';
@@ -38,6 +42,7 @@ const percent = (share: number): string => `${(share * 100).toFixed(share < 0.1 
 export function renderLegendSvg(metrics: Metrics, options: LegendOptions = {}): string {
   const width = options.width ?? 800;
   const background = options.background ?? '#05080f';
+  const caption = options.caption ?? DEFAULT_CAPTION;
   const login = metrics.user.login;
 
   const stats = [
@@ -90,7 +95,7 @@ export function renderLegendSvg(metrics: Metrics, options: LegendOptions = {}): 
     `<text x="${width - 20}" y="32" font-size="13" text-anchor="end" fill="#8b949e">${escapeXml(stats)}</text>`,
     `<text x="20" y="50" font-size="11" fill="#6e7681">LAST 12 MONTHS · LANGUAGES BY SHARE OF CODE</text>`,
     chips,
-    `<text x="20" y="${height - 16}" font-size="12" fill="#8b949e">Arms: languages · Stars: repositories, sized by stars · Ring: one dot per day, taller = busier</text>`,
+    `<text x="20" y="${height - 16}" font-size="12" fill="#8b949e">${escapeXml(caption)}</text>`,
     `</g>`,
     `</svg>`,
   ].join('\n');
