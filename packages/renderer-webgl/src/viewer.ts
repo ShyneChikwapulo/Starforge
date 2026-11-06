@@ -97,6 +97,8 @@ export interface Viewer {
    * when it stops being selected. Auto-rotation pauses while something is selected.
    */
   onHover(callback: ((hit: HoverHit | null) => void) | null): void;
+  /** Call after changing colours or sizes in the particle state, so they are uploaded again. */
+  invalidateAppearance(): void;
   /** Call after the canvas changes size. */
   resize(): void;
   dispose(): void;
@@ -244,6 +246,12 @@ export function createViewer(options: ViewerOptions): Viewer {
     material.uniforms.uScale.value = 0.22 * focalPixels;
   }
 
+  function invalidateAppearance(): void {
+    if (!points) return;
+    (points.geometry.getAttribute('aColor') as BufferAttribute).needsUpdate = true;
+    (points.geometry.getAttribute('size') as BufferAttribute).needsUpdate = true;
+  }
+
   function setParticles(state: ParticleState): void {
     if (points) {
       scene.remove(points);
@@ -285,6 +293,7 @@ export function createViewer(options: ViewerOptions): Viewer {
       if (!callback) hadHit = false;
     },
     resize,
+    invalidateAppearance,
     dispose() {
       renderer.setAnimationLoop(null);
       canvas.removeEventListener('pointermove', onPointerMove);
