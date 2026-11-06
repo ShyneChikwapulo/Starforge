@@ -21,7 +21,12 @@ const percent = (share: number): string => `${(share * 100).toFixed(share < 0.1 
  * Fill the overlay with the data behind the picture. Everything goes in through textContent
  * and DOM calls, never HTML strings, because metrics.json comes from an arbitrary repository.
  */
-export function renderOverlay(container: HTMLElement, metrics: Metrics, sourceLabel: string): void {
+export function renderOverlay(
+  container: HTMLElement,
+  metrics: Metrics,
+  sourceLabel: string,
+  legend: string,
+): void {
   const title = element('h1', `@${metrics.user.login}`);
 
   const stats = element(
@@ -48,10 +53,7 @@ export function renderOverlay(container: HTMLElement, metrics: Metrics, sourceLa
     languages.append(item);
   }
 
-  const key = element(
-    'p',
-    'Arms are languages · bright stars are repositories, sized by stars · the outer ring is one dot per day, taller means busier',
-  );
+  const key = element('p', legend);
   const source = element(
     'p',
     `Data: ${sourceLabel} · drag to orbit, scroll to zoom, hover or tap a star or ring dot for details`,

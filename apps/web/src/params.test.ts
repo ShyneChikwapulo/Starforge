@@ -75,3 +75,15 @@ describe('lighting parameters', () => {
     expect(parseViewerParams('?brightness=1.5').brightness).toBe(1.5);
   });
 });
+
+describe('preset parameter', () => {
+  it('defaults to the galaxy', () => {
+    expect(parseViewerParams('').preset).toBe('galaxy');
+  });
+
+  it('accepts known presets and ignores unknown ones', () => {
+    expect(parseViewerParams('?preset=tunnel').preset).toBe('tunnel');
+    expect(parseViewerParams('?preset=nope').preset).toBe('galaxy');
+    expect(parseViewerParams('?preset=constructor').preset).toBe('galaxy');
+  });
+});
