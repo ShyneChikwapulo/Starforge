@@ -200,5 +200,8 @@ export const galaxyPreset: Preset = {
   name: 'Galaxy',
   legend:
     'Arms are languages · bright stars are repositories, sized by stars · the outer ring is one dot per day, taller means busier',
+  caption:
+    'Arms: languages · Stars: repositories, sized by stars · Ring: one dot per day, taller = busier',
+  view: { yaw: 0.4, pitch: 0.55, distance: 28, fov: Math.PI / 4 },
   build: buildGalaxy,
 };

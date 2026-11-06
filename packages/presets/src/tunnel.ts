@@ -180,5 +180,8 @@ export const tunnelPreset: Preset = {
   name: 'Tunnel',
   legend:
     'Coloured stripes along the wall are languages · bright nodes are repositories, sized by stars · the spiral of dots is one per day, oldest at the far end, and spikes pointing inward mean busier days',
+  caption:
+    'Stripes: languages · Nodes: repositories, sized by stars · Spiral dots: one per day, inward = busier',
+  view: { yaw: 0.5, pitch: 0.3, distance: 38, fov: Math.PI / 4 },
   build: buildTunnel,
 };
