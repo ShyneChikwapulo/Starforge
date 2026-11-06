@@ -12,6 +12,7 @@ import {
   ReinhardToneMapping,
   Scene,
   ShaderMaterial,
+  Spherical,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -99,6 +100,8 @@ export interface Viewer {
   onHover(callback: ((hit: HoverHit | null) => void) | null): void;
   /** Call after changing colours or sizes in the particle state, so they are uploaded again. */
   invalidateAppearance(): void;
+  /** Smoothly move the camera to this tilt and distance, keeping the current rotation. */
+  setView(view: { pitch: number; distance: number }): void;
   /** Call after the canvas changes size. */
   resize(): void;
   dispose(): void;
@@ -246,6 +249,30 @@ export function createViewer(options: ViewerOptions): Viewer {
     material.uniforms.uScale.value = 0.22 * focalPixels;
   }
 
+  let viewTarget: { pitch: number; distance: number } | null = null;
+  const spherical = new Spherical();
+  const viewOffset = new Vector3();
+
+  function stepView(): void {
+    if (!viewTarget) return;
+    viewOffset.copy(camera.position).sub(controls.target);
+    spherical.setFromVector3(viewOffset);
+    const pitch = Math.PI / 2 - spherical.phi;
+    const nextPitch = pitch + (viewTarget.pitch - pitch) * 0.06;
+    const nextRadius = spherical.radius + (viewTarget.distance - spherical.radius) * 0.06;
+    spherical.phi = Math.PI / 2 - nextPitch;
+    spherical.radius = nextRadius;
+    viewOffset.setFromSpherical(spherical);
+    camera.position.copy(controls.target).add(viewOffset);
+    camera.lookAt(controls.target);
+    if (
+      Math.abs(nextPitch - viewTarget.pitch) < 0.002 &&
+      Math.abs(nextRadius - viewTarget.distance) < 0.05
+    ) {
+      viewTarget = null;
+    }
+  }
+
   function invalidateAppearance(): void {
     if (!points) return;
     (points.geometry.getAttribute('aColor') as BufferAttribute).needsUpdate = true;
@@ -274,6 +301,7 @@ export function createViewer(options: ViewerOptions): Viewer {
   renderer.setAnimationLoop(() => {
     frameCallback?.();
     if (points) (points.geometry.getAttribute('position') as BufferAttribute).needsUpdate = true;
+    stepView();
     controls.update();
     material.uniforms.uDistance.value = camera.position.length();
     updateHover();
@@ -294,6 +322,9 @@ export function createViewer(options: ViewerOptions): Viewer {
     },
     resize,
     invalidateAppearance,
+    setView(view) {
+      viewTarget = { pitch: view.pitch, distance: view.distance };
+    },
     dispose() {
       renderer.setAnimationLoop(null);
       canvas.removeEventListener('pointermove', onPointerMove);

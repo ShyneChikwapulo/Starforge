@@ -58,6 +58,7 @@ async function main(): Promise<void> {
       brightness: params.brightness,
     });
     viewer.setParticles(state);
+    viewer.setView(presets[current].view);
     viewer.onFrame(() => simulation.step());
 
     const tooltip = createTooltip(marker, tip);
@@ -83,6 +84,7 @@ async function main(): Promise<void> {
       state.color.set(next.state.color);
       state.size.set(next.state.size);
       viewer.invalidateAppearance();
+      viewer.setView(presets[id].view);
 
       entities = next.entities;
       viewer.setHoverTargets(entities.map((entity) => entity.particle));

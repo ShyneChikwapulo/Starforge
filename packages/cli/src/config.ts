@@ -1,10 +1,11 @@
 import { readFile } from 'node:fs/promises';
+import { PRESET_IDS } from '@starforge/presets';
 import { z } from 'zod';
 
 export const ConfigSchema = z.strictObject({
   /** GitHub login to visualise. */
   username: z.string().min(1),
-  preset: z.enum(['galaxy']).default('galaxy'),
+  preset: z.enum(PRESET_IDS).default('galaxy'),
   /** Where generated files are written, relative to the working directory. */
   outputDir: z.string().min(1).default('starforge'),
   format: z.enum(['webp', 'apng']).default('webp'),

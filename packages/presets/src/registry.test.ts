@@ -25,3 +25,15 @@ describe('preset registry', () => {
     expect(new Set(counts).size).toBe(1);
   });
 });
+
+describe('preset metadata', () => {
+  it('gives every preset a short caption and a sane starting view', () => {
+    for (const id of PRESET_IDS) {
+      const preset = getPreset(id)!;
+      expect(preset.caption.length).toBeGreaterThan(10);
+      expect(preset.caption.length).toBeLessThanOrEqual(110);
+      expect(preset.view.distance).toBeGreaterThan(0);
+      expect(preset.view.fov).toBeGreaterThan(0);
+    }
+  });
+});

@@ -58,6 +58,12 @@ describe('renderLegendSvg', () => {
     expect(renderLegendSvg(withLanguages(names))).toContain('height="156"');
   });
 
+  it('uses a custom caption and escapes it', () => {
+    const svg = renderLegendSvg(sample, { caption: 'Stripes <are> languages' });
+    expect(svg).toContain('Stripes &lt;are&gt; languages');
+    expect(svg).not.toContain('Arms:');
+  });
+
   it('is deterministic', () => {
     expect(renderLegendSvg(sample)).toBe(renderLegendSvg(sample));
   });

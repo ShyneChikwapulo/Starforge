@@ -30,10 +30,25 @@ export interface PresetResult {
   entities: Entity[];
 }
 
+/** Where the camera starts. It then orbits the origin, so one full turn makes a seamless loop. */
+export interface ViewPose {
+  /** Rotation around the vertical axis, radians. */
+  yaw: number;
+  /** Tilt above the scene, radians. */
+  pitch: number;
+  distance: number;
+  /** Vertical field of view, radians. */
+  fov: number;
+}
+
 export interface Preset {
   id: string;
   name: string;
   /** One sentence explaining how the data maps to the picture. */
   legend: string;
+  /** Short caption for the legend strip under a README animation. */
+  caption: string;
+  /** Where the camera starts. */
+  view: ViewPose;
   build(metrics: Metrics, options?: PresetOptions): PresetResult;
 }
