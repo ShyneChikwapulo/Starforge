@@ -3,3 +3,4 @@ export * from './scale';
 export * from './galaxy';
 export * from './tunnel';
 export * from './registry';
+export * from './tree';
