@@ -183,5 +183,6 @@ export const tunnelPreset: Preset = {
   caption:
     'Stripes: languages · Nodes: repositories, sized by stars · Spiral dots: one per day, inward = busier',
   view: { yaw: 0.5, pitch: 0.3, distance: 38, fov: Math.PI / 4 },
+  size: { width: 800, height: 400 },
   build: buildTunnel,
 };

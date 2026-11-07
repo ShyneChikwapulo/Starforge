@@ -11,8 +11,6 @@ describe('parseConfig', () => {
       preset: 'galaxy',
       outputDir: 'starforge',
       format: 'webp',
-      width: 800,
-      height: 400,
       frames: 60,
       quality: 80,
       saveMetrics: true,

@@ -97,10 +97,11 @@ Everything is deterministic: the same data and seed always produce the same pict
 
 ## Presets
 
-| Preset   | What it shows                                                                                          |
-| -------- | ------------------------------------------------------------------------------------------------------ |
-| `galaxy` | Languages as spiral arms, repositories as stars, one ring dot per day                                  |
-| `tunnel` | Time as depth, the year as a spiral along the wall, languages as stripes, repositories as bright nodes |
+| Preset   | What it shows                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `galaxy` | Languages as spiral arms, repositories as stars, one ring dot per day                                              |
+| `tunnel` | Time as depth, the year as a spiral along the wall, languages as stripes, repositories as bright nodes             |
+| `tree`   | Your year as a tree: branches are months, twigs are days, glowing leaves are contributions, roots are repositories |
 
 Choose one with `"preset"` in `starforge.config.json`. The interactive viewer has a switch between
 them and morphs one into the other (`?preset=tunnel` opens it directly).
@@ -109,19 +110,19 @@ them and morphs one into the other (`?preset=tunnel` opens it directly).
 
 All keys except `username` are optional.
 
-| Key               | Default       | Meaning                                                                              |
-| ----------------- | ------------- | ------------------------------------------------------------------------------------ |
-| `username`        | required      | GitHub login to visualise                                                            |
-| `preset`          | `"galaxy"`    | `"galaxy"` or `"tunnel"`. Output files are named after it, for example `tunnel.webp` |
-| `outputDir`       | `"starforge"` | Where files are written                                                              |
-| `format`          | `"webp"`      | `"webp"` (small, lossy) or `"apng"` (lossless, large)                                |
-| `width`, `height` | `800`, `400`  | Pixel size                                                                           |
-| `frames`, `fps`   | `60`, `15`    | Loop length and speed                                                                |
-| `quality`         | `80`          | Lossy WebP quality, 0 to 100                                                         |
-| `bloom`           | `0.9`         | Glow strength; `0` turns it off                                                      |
-| `seed`            | `1`           | Changes the scattered dust, not your data                                            |
-| `legend`          | `true`        | Also write `galaxy-legend.svg`, a caption strip that spells out the data             |
-| `saveMetrics`     | `true`        | Also write a `metrics.json` snapshot                                                 |
+| Key               | Default               | Meaning                                                                                        |
+| ----------------- | --------------------- | ---------------------------------------------------------------------------------------------- |
+| `username`        | required              | GitHub login to visualise                                                                      |
+| `preset`          | `"galaxy"`            | `"galaxy"`, `"tunnel"` or `"tree"`. Output files are named after it, for example `tunnel.webp` |
+| `outputDir`       | `"starforge"`         | Where files are written                                                                        |
+| `format`          | `"webp"`              | `"webp"` (small, lossy) or `"apng"` (lossless, large)                                          |
+| `width`, `height` | the preset's own size | Pixel size                                                                                     |
+| `frames`, `fps`   | `60`, `15`            | Loop length and speed                                                                          |
+| `quality`         | `80`                  | Lossy WebP quality, 0 to 100                                                                   |
+| `bloom`           | `0.9`                 | Glow strength; `0` turns it off                                                                |
+| `seed`            | `1`                   | Changes the scattered dust, not your data                                                      |
+| `legend`          | `true`                | Also write `galaxy-legend.svg`, a caption strip that spells out the data                       |
+| `saveMetrics`     | `true`                | Also write a `metrics.json` snapshot                                                           |
 
 ## Privacy
 

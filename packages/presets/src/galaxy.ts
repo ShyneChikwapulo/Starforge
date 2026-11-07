@@ -203,5 +203,6 @@ export const galaxyPreset: Preset = {
   caption:
     'Arms: languages · Stars: repositories, sized by stars · Ring: one dot per day, taller = busier',
   view: { yaw: 0.4, pitch: 0.55, distance: 28, fov: Math.PI / 4 },
+  size: { width: 800, height: 400 },
   build: buildGalaxy,
 };

@@ -14,6 +14,7 @@ const BASE_HEIGHT = 132;
 const DEFAULT_CAPTION =
   'Arms: languages · Stars: repositories, sized by stars · Ring: one dot per day, taller = busier';
 const ROW_HEIGHT = 24;
+const CAPTION_LINE = 16;
 const CHAR_WIDTH = 7.6;
 const FALLBACK_COLOR = '#8b949e';
 const SAFE_COLOR = /^#[0-9a-fA-F]{6}$/;
@@ -33,6 +34,23 @@ const count = (n: number, one: string, many: string): string =>
   `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 
 const percent = (share: number): string => `${(share * 100).toFixed(share < 0.1 ? 1 : 0)}%`;
+
+/** Split a caption into lines of at most `maxChars`, breaking only between " · " segments. */
+export function wrapCaption(text: string, maxChars: number): string[] {
+  const lines: string[] = [];
+  let current = '';
+  for (const segment of text.split(' · ')) {
+    const candidate = current ? `${current} · ${segment}` : segment;
+    if (current && candidate.length > maxChars) {
+      lines.push(current);
+      current = segment;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.length > 0 ? lines : [''];
+}
 
 /**
  * A caption strip that spells out what the galaxy encodes, using the same data as the picture.
@@ -82,7 +100,8 @@ export function renderLegendSvg(metrics: Metrics, options: LegendOptions = {}): 
     chips = parts.join('');
   }
 
-  const height = BASE_HEIGHT + (rows - 1) * ROW_HEIGHT;
+  const captionLines = wrapCaption(caption, Math.floor((width - 40) / 6.4));
+  const height = BASE_HEIGHT + (rows - 1) * ROW_HEIGHT + (captionLines.length - 1) * CAPTION_LINE;
   const languageSummary = arms.map((l) => `${l.name} ${percent(l.share)}`).join(', ');
   const label = `Starforge legend for ${login}. ${stats}.${languageSummary ? ` Languages: ${languageSummary}.` : ''}`;
 
@@ -95,7 +114,10 @@ export function renderLegendSvg(metrics: Metrics, options: LegendOptions = {}): 
     `<text x="${width - 20}" y="32" font-size="13" text-anchor="end" fill="#8b949e">${escapeXml(stats)}</text>`,
     `<text x="20" y="50" font-size="11" fill="#6e7681">LAST 12 MONTHS · LANGUAGES BY SHARE OF CODE</text>`,
     chips,
-    `<text x="20" y="${height - 16}" font-size="12" fill="#8b949e">${escapeXml(caption)}</text>`,
+    ...captionLines.map(
+      (line, i) =>
+        `<text x="20" y="${height - 16 - (captionLines.length - 1 - i) * CAPTION_LINE}" font-size="12" fill="#8b949e">${escapeXml(line)}</text>`,
+    ),
     `</g>`,
     `</svg>`,
   ].join('\n');
