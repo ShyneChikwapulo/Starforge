@@ -16,7 +16,7 @@ export interface PresetOptions {
 export interface Entity {
   /** Index of the particle that represents this item. */
   particle: number;
-  kind: 'repository' | 'day';
+  kind: 'repository' | 'day' | 'contribution';
   title: string;
   detail: string;
 }
@@ -50,5 +50,7 @@ export interface Preset {
   caption: string;
   /** Where the camera starts. */
   view: ViewPose;
+  /** Default pixel size for README animations when the config does not set one. */
+  size: { width: number; height: number };
   build(metrics: Metrics, options?: PresetOptions): PresetResult;
 }
