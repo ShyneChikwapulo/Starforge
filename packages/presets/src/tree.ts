@@ -16,6 +16,8 @@ import type { Entity, Preset, PresetOptions, PresetResult } from './types';
 /** World height of the tree and where its base sits; the baked silhouette is 1 tall. */
 const SCALE = 20;
 const BASE_Y = -10;
+/** Rough horizontal reach of the crown, used to light its rim brighter than its core. */
+const CROWN_RADIUS = SCALE * 0.65;
 const MAX_REPOS = 100;
 const MAX_LEAVES = 3000;
 const DEFAULT_PARTICLES = 6000;
@@ -24,20 +26,25 @@ const TAU = Math.PI * 2;
 const FALLBACK_COLOR = '#8b949e';
 
 /** Shares of the non-data (dust) particles. The foliage haze takes whatever is left. */
-const TRUNK_SHARE = 0.12;
-const BRANCH_SHARE = 0.22;
-const TWIG_SHARE = 0.15;
-const MAX_TWIG_POINTS = 4;
-const MAX_TWIG_LENGTH = 3;
+const TRUNK_SHARE = 0.09;
+const BRANCH_SHARE = 0.18;
 /** How far a busy day's glow reaches into the surrounding foliage, in world units. */
-const GLOW_RADIUS = 2.4;
+const GLOW_RADIUS = 3;
 /** Day tips avoid the inner crown: they keep points beyond this share of the local reach. */
 const SHELL = 0.7;
 
-const OLD: Rgb = [0.72, 0.55, 0.16];
-const MID: Rgb = [0.12, 0.55, 0.2];
-const NEW: Rgb = [0.55, 1, 0.3];
-const BARK: Rgb = [0.5, 0.36, 0.22];
+/**
+ * Recency ramp, 0 = oldest, 1 = newest: amber gold, lime, emerald, then a bright mint green.
+ * The lime stop keeps gold-to-green from passing through a muddy olive.
+ */
+const RAMP: [number, Rgb][] = [
+  [0, [0.95, 0.62, 0.15]],
+  [0.3, [0.72, 0.82, 0.2]],
+  [0.62, [0.12, 0.68, 0.34]],
+  [1, [0.45, 1, 0.55]],
+];
+const FOLIAGE: Rgb = [0.12, 0.68, 0.34];
+const BARK: Rgb = [0.55, 0.3, 0.2];
 
 interface Point {
   x: number;
@@ -58,9 +65,17 @@ function lerp(a: Rgb, b: Rgb, t: number): Rgb {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
-/** Fresh leaves are neon green; older ones fade through deep green to gold. 0 = oldest, 1 = newest. */
+/** Fresh leaves are bright green; older ones fade through emerald and lime to gold. */
 function recencyColor(t: number): Rgb {
-  return t < 0.5 ? lerp(OLD, MID, t / 0.5) : lerp(MID, NEW, (t - 0.5) / 0.5);
+  const x = Math.min(1, Math.max(0, t));
+  for (let i = 1; i < RAMP.length; i++) {
+    const [end, to] = RAMP[i];
+    if (x <= end) {
+      const [start, from] = RAMP[i - 1];
+      return lerp(from, to, (x - start) / (end - start));
+    }
+  }
+  return RAMP[RAMP.length - 1][1];
 }
 
 function groupMonths(calendar: Metrics['contributions']['calendar']): Month[] {
@@ -129,18 +144,6 @@ function bakedPoint(points: Float32Array, j: number, rng: () => number): Point {
   };
 }
 
-function allPoints(points: Float32Array): Point[] {
-  const out: Point[] = [];
-  for (let i = 0; i < points.length; i += 3) {
-    out.push({
-      x: points[i] * SCALE,
-      y: BASE_Y + points[i + 1] * SCALE,
-      z: points[i + 2] * SCALE,
-    });
-  }
-  return out;
-}
-
 /**
  * Leaf points on the outer part of the crown, lowest first. "Outer" is relative to how far the
  * crown reaches at that height, so the trunk's fork and the tapering top are treated alike.
@@ -204,35 +207,19 @@ function placeAnchors(pool: Point[], months: Month[], total: number): Point[] {
   return anchors;
 }
 
-function nearest(points: Point[], target: Point): { point: Point; distanceSq: number } {
-  let best = points[0];
-  let bestSq = Infinity;
-  for (const p of points) {
-    const dx = p.x - target.x;
-    const dy = p.y - target.y;
-    const dz = p.z - target.z;
-    const sq = dx * dx + dy * dy + dz * dz;
-    if (sq < bestSq) {
-      bestSq = sq;
-      best = p;
-    }
-  }
-  return { point: best, distanceSq: bestSq };
-}
-
 /**
  * Data encodings:
  * - the crown climbs through time: one ring per calendar month, oldest lowest, days sweeping
  *   around each ring in date order
  * - one bright tip per day on the crown's outer shell (dim when nothing happened, larger and
- *   brighter when busy), joined to the nearest branch by a short twig
- * - one glowing leaf per contribution, clustered on its day's tip; fresher leaves are brighter
- *   green, older ones fade to gold. If there are more contributions than the leaf budget, leaf
- *   counts are scaled down proportionally
+ *   brighter when busy)
+ * - one glowing leaf per contribution, in a soft cloud around its day's tip; fresher leaves are
+ *   brighter green, older ones fade to gold. If there are more contributions than the leaf
+ *   budget, leaf counts are scaled down proportionally
  * - roots are repositories, sized by stars
  * - the trunk and branches are the baked model's own, and the soft foliage haze is the baked
- *   crown itself, tinted by the nearest day and glowing near busy days: decoration that follows
- *   activity, not a count
+ *   crown itself, tinted by the nearest day, brighter on the rim and glowing near busy days:
+ *   decoration that follows activity, not a count
  *
  * It returns the same particle count as the other presets for the same input, so a viewer can
  * morph between them.
@@ -258,18 +245,6 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
   const dayTime = (i: number): number => (calendar.length > 1 ? i / (calendar.length - 1) : 1);
 
   const tips = placeAnchors(crownShell(silhouette.leaves), months, calendar.length);
-  const wood = allPoints(silhouette.branches);
-  const stems = tips.map((tip) => {
-    const { point, distanceSq } = nearest(wood, tip);
-    const distance = Math.sqrt(distanceSq);
-    if (distance <= MAX_TWIG_LENGTH) return point;
-    const f = MAX_TWIG_LENGTH / distance;
-    return {
-      x: tip.x + (point.x - tip.x) * f,
-      y: tip.y + (point.y - tip.y) * f,
-      z: tip.z + (point.z - tip.z) * f,
-    };
-  });
 
   // Tips: one per day.
   calendar.forEach((day, i) => {
@@ -283,7 +258,7 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
       tip.y,
       tip.z,
       scaleColor(recencyColor(dayTime(i)), day.count > 0 ? 1 : 0.3),
-      0.7 + 1.4 * activity,
+      0.7 + 1.2 * activity,
     );
   });
 
@@ -310,7 +285,7 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
     );
   });
 
-  // Leaves: one per contribution, up to a budget.
+  // Leaves: one per contribution, up to a budget, in a soft cloud around the day's tip.
   const totalContributions = calendar.reduce((sum, day) => sum + day.count, 0);
   const leafBudget = Math.min(MAX_LEAVES, Math.floor(dustCount * 0.4));
   const leafCounts = allocate(
@@ -318,9 +293,10 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
     leafBudget,
   );
   const scaled = totalContributions > leafBudget;
+  const cloud = (): number => rng() + rng() + rng() - 1.5;
   calendar.forEach((day, i) => {
     const tip = tips[i];
-    const spread = 0.25 + 0.1 * Math.sqrt(Math.max(day.count, 1));
+    const spread = 0.5 + 0.18 * Math.sqrt(Math.max(day.count, 1));
     for (let j = 0; j < leafCounts[i]; j++) {
       entities.push({
         particle: index,
@@ -333,49 +309,22 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
       put(
         state,
         index++,
-        tip.x + (rng() - 0.5) * 2 * spread,
-        tip.y + (rng() - 0.5) * 2 * spread,
-        tip.z + (rng() - 0.5) * 2 * spread,
-        scaleColor(recencyColor(dayTime(i)), 0.75 + 0.25 * rng()),
-        1.1 + 1.1 * rng(),
+        tip.x + cloud() * spread,
+        tip.y + cloud() * spread,
+        tip.z + cloud() * spread,
+        scaleColor(recencyColor(dayTime(i)), 0.6 + 0.3 * rng()),
+        0.9 + 0.8 * rng(),
       );
     }
   });
 
-  // Bark: the model's own trunk and branches, then a short twig from each tip.
-  const bark = (x: number, y: number, z: number): void =>
-    put(state, index++, x, y, z, scaleColor(BARK, 0.6 + 0.4 * rng()), 0.5 + 0.4 * rng());
-
+  // Bark: the model's own trunk and branches.
+  const bark = (p: Point): void =>
+    put(state, index++, p.x, p.y, p.z, scaleColor(BARK, 0.6 + 0.4 * rng()), 0.5 + 0.4 * rng());
   const trunkCount = Math.floor(dustCount * TRUNK_SHARE);
-  for (let j = 0; j < trunkCount; j++) {
-    const p = bakedPoint(silhouette.trunk, j, rng);
-    bark(p.x, p.y, p.z);
-  }
+  for (let j = 0; j < trunkCount; j++) bark(bakedPoint(silhouette.trunk, j, rng));
   const branchCount = Math.floor(dustCount * BRANCH_SHARE);
-  for (let j = 0; j < branchCount; j++) {
-    const p = bakedPoint(silhouette.branches, j, rng);
-    bark(p.x, p.y, p.z);
-  }
-
-  const twigBudget = Math.floor(dustCount * TWIG_SHARE);
-  const perTwig =
-    calendar.length > 0 ? Math.min(MAX_TWIG_POINTS, Math.floor(twigBudget / calendar.length)) : 0;
-  calendar.forEach((_, i) => {
-    const tip = tips[i];
-    const stem = stems[i];
-    for (let j = 1; j <= perTwig; j++) {
-      const f = j / (perTwig + 1);
-      put(
-        state,
-        index++,
-        stem.x + (tip.x - stem.x) * f,
-        stem.y + (tip.y - stem.y) * f,
-        stem.z + (tip.z - stem.z) * f,
-        scaleColor(lerp(BARK, recencyColor(dayTime(i)), f * f), 0.55 + 0.3 * rng()),
-        0.4 + 0.3 * rng(),
-      );
-    }
-  });
+  for (let j = 0; j < branchCount; j++) bark(bakedPoint(silhouette.branches, j, rng));
 
   // Foliage haze: the baked crown. It fills the rest of the budget, so the whole outline is
   // always there, and each point takes its colour and glow from the nearest day.
@@ -383,7 +332,7 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
   for (let h = 0; h < hazeCount; h++) {
     const p = bakedPoint(silhouette.leaves, h, rng);
     if (calendar.length === 0) {
-      put(state, index++, p.x, p.y, p.z, scaleColor(MID, 0.3 + 0.3 * rng()), 0.4 + 0.5 * rng());
+      put(state, index++, p.x, p.y, p.z, scaleColor(FOLIAGE, 0.3 + 0.3 * rng()), 0.4 + 0.5 * rng());
       continue;
     }
     let best = 0;
@@ -400,14 +349,16 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
     }
     const activity = logScale(calendar[best].count, maxDay, 10);
     const glow = activity * Math.exp(-bestSq / (2 * GLOW_RADIUS * GLOW_RADIUS));
+    const rim = Math.min(1, Math.hypot(p.x, p.z) / CROWN_RADIUS);
+    const body = (0.45 + 0.3 * rng()) * (0.65 + 0.55 * rim);
     put(
       state,
       index++,
       p.x,
       p.y,
       p.z,
-      scaleColor(recencyColor(dayTime(best)), 0.22 + 0.3 * rng() + 0.45 * glow),
-      0.4 + 0.5 * rng() + 0.4 * glow,
+      scaleColor(recencyColor(dayTime(best)), Math.min(1, body + 0.35 * glow)),
+      0.45 + 0.45 * rng() + 0.25 * glow,
     );
   }
 
