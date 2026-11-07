@@ -9,8 +9,8 @@ export const ConfigSchema = z.strictObject({
   /** Where generated files are written, relative to the working directory. */
   outputDir: z.string().min(1).default('starforge'),
   format: z.enum(['webp', 'apng']).default('webp'),
-  width: z.number().int().min(32).max(1600).default(800),
-  height: z.number().int().min(32).max(1000).default(400),
+  width: z.number().int().min(32).max(1600).optional(),
+  height: z.number().int().min(32).max(1000).optional(),
   /** Frames in the loop. */
   frames: z.number().int().min(2).max(240).default(60),
   fps: z.number().min(1).max(60).default(15),

@@ -61,9 +61,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   }
 
   const preset = getPreset(config.preset)!;
+  const width = config.width ?? preset.size.width;
+  const height = config.height ?? preset.size.height;
   const frames = renderLoop(preset, metrics, {
-    width: config.width,
-    height: config.height,
+    width: width,
+    height: height,
     frames: config.frames,
     seed: config.seed,
     bloom: config.bloom > 0 ? { strength: config.bloom, levels: 4 } : null,
@@ -73,15 +75,15 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   const animation =
     config.format === 'webp'
       ? await encodeWebp({
-          width: config.width,
-          height: config.height,
+          width: width,
+          height: height,
           frames: rgba,
           fps: config.fps,
           quality: config.quality,
           binary: options.webpBinary,
         })
-      : encodeApng({ width: config.width, height: config.height, frames: rgba, fps: config.fps });
-  const poster = encodePng(config.width, config.height, frames[0]!.data);
+      : encodeApng({ width: width, height: height, frames: rgba, fps: config.fps });
+  const poster = encodePng(width, height, frames[0]!.data);
 
   const directory = resolve(options.cwd ?? process.cwd(), config.outputDir);
   await mkdir(directory, { recursive: true });
@@ -99,7 +101,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     legendPath = join(directory, `${config.preset}-legend.svg`);
     await writeFile(
       legendPath,
-      renderLegendSvg(metrics, { width: config.width, caption: preset.caption }),
+      renderLegendSvg(metrics, { width: width, caption: preset.caption }),
     );
   }
 
