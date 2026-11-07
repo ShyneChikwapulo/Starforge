@@ -1,6 +1,6 @@
 import { createSampleMetrics, type Metrics } from '@starforge/github-data';
 import { describe, expect, it } from 'vitest';
-import { renderLegendSvg } from './legend';
+import { renderLegendSvg, wrapCaption } from './legend';
 
 const sample = createSampleMetrics();
 
@@ -66,5 +66,22 @@ describe('renderLegendSvg', () => {
 
   it('is deterministic', () => {
     expect(renderLegendSvg(sample)).toBe(renderLegendSvg(sample));
+  });
+});
+
+describe('wrapCaption', () => {
+  it('breaks only between segments and respects the width', () => {
+    expect(wrapCaption('one · two · three', 10)).toEqual(['one · two', 'three']);
+  });
+
+  it('keeps a short caption on one line', () => {
+    expect(wrapCaption('one · two', 40)).toEqual(['one · two']);
+  });
+});
+
+describe('renderLegendSvg with a long caption', () => {
+  it('grows taller instead of overflowing', () => {
+    const caption = `${'x'.repeat(70)} · ${'y'.repeat(70)}`;
+    expect(renderLegendSvg(sample, { caption })).toContain('height="148"');
   });
 });
