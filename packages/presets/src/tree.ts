@@ -387,7 +387,7 @@ export const treePreset: Preset = {
     'The crown climbs through time, one ring per month, oldest at the bottom · each bright tip is a day, dim when quiet · each glowing leaf is a contribution, fresher leaves are brighter green and older ones fade to gold (scaled down only for very busy years) · roots are repositories, sized by stars · the soft foliage haze is decoration that follows activity',
   caption:
     'Height: time, a ring per month · Tips: days · Leaves: contributions · Roots: repositories',
-  view: { yaw: 0.4, pitch: 0.12, distance: 38, fov: Math.PI / 4 },
-  size: { width: 600, height: 800 },
+  view: { yaw: 0.4, pitch: 0.12, distance: 36, fov: Math.PI / 4 },
+  size: { width: 720, height: 720 },
   build: buildTree,
 };

@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createSampleMetrics } from '@starforge/github-data';
+import { getPreset } from '@starforge/presets';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { parseConfig } from './config';
 import { generate } from './generate';
@@ -25,7 +26,7 @@ async function dimensions(path: string): Promise<{ width: number; height: number
 describe('default sizes', () => {
   it("uses the preset's own size when width and height are omitted", async () => {
     const result = await generate({ config: parseConfig(base), metrics, cwd });
-    expect(await dimensions(result.poster)).toEqual({ width: 600, height: 800 });
+    expect(await dimensions(result.poster)).toEqual(getPreset('tree')!.size);
   });
 
   it('lets the config override the preset size', async () => {
