@@ -1,4 +1,4 @@
-import type { Behaviour, ParticleState, SolidMesh } from '@starforge/core';
+import type { Behaviour, ParticleState, SolidBody, SolidMesh } from '@starforge/core';
 import type { Metrics } from '@starforge/github-data';
 
 export interface PresetOptions {
@@ -27,8 +27,11 @@ export interface PresetResult {
   /** Seed to hand to the Simulation so the whole pipeline stays reproducible. */
   seed: number;
   /** The particles that carry data directly, in the order they were placed. */
-  entities: Entity[]; /** Solid geometry drawn as real, lit triangles outside the glow, for example a tree's wood. */
+  entities: Entity[];
+  /** Solid geometry drawn as real, lit triangles outside the glow, for example a tree's wood. */
   mesh?: SolidMesh;
+  /** Solid meshes that move, such as orbiting balls. Drawn together with `mesh`. */
+  bodies?: SolidBody[];
 }
 
 /** Where the camera starts. It then orbits the origin, so one full turn makes a seamless loop. */
