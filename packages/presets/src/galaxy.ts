@@ -18,7 +18,7 @@ const RING_HEIGHT = 2.5;
 const TWIST = 3.2;
 export const GALAXY_MAX_ARMS = 6;
 const MAX_REPOS = 100;
-const DEFAULT_PARTICLES = 6000;
+const DEFAULT_PARTICLES = 16000;
 const FALLBACK_COLOR = '#8b949e';
 const RING_COLOR = '#ffd27a';
 
