@@ -29,4 +29,6 @@ export interface Pose {
 export interface SolidBody {
   mesh: SolidMesh;
   pose(turns: number): Pose;
+  /** What a viewer shows when this body is hovered, for example a language and its share. */
+  label?: { title: string; detail: string };
 }
