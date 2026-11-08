@@ -19,7 +19,7 @@ import type { Entity, Preset, PresetOptions, PresetResult } from './types';
 type Vec = [number, number, number];
 
 /** The kitten's longest side, in world units. */
-const KITTEN_SCALE = 10;
+const KITTEN_SCALE = 14;
 const MAX_REPOS = 100;
 const DEFAULT_PARTICLES = 16000;
 const GOLDEN_ANGLE = 2.399963229728653;
@@ -30,19 +30,19 @@ const FALLBACK_COLOR = '#8b949e';
 const GLOW_SHARE = 0.12;
 const STARFIELD_SHARE = 0.18;
 /** The kitten is tuned for about this many particles; more of them dim each one in proportion. */
-const BODY_REFERENCE = 6000;
+const BODY_REFERENCE = 4000;
 
 const TUBE_RADIUS = 0.2;
 const TUBE_SEGMENTS = 360;
 const TUBE_AROUND = 10;
-const LINK_RADIUS = 0.03;
+const LINK_RADIUS = 0.05;
 const SPHERE_SEGMENTS = 160;
 const SPHERE_RINGS = 80;
 /** Half the width of a logo on a ball, as a share of the ball's radius. */
 const LOGO_HALF = 0.64;
 
 const RING_COLOR: Rgb = [0.45, 0.8, 1];
-const LINK_COLOR: Rgb = [0.32, 0.58, 0.95];
+const LINK_COLOR: Rgb = [0.5, 0.78, 1];
 const GLASS: Rgb = [0.05, 0.1, 0.17];
 const DAY_OLD: Rgb = [0.25, 0.45, 0.95];
 const DAY_NEW: Rgb = [0.85, 1, 1];
@@ -420,7 +420,7 @@ export function buildAtom(metrics: Metrics, options: PresetOptions = {}): Preset
       state,
       index++,
       [radius * ring * Math.cos(phi), radius * z, radius * ring * Math.sin(phi)],
-      scaleColor(lerp([0.6, 0.75, 1], [1, 1, 1], rng()), 0.25 + 0.5 * rng()),
+      scaleColor(lerp([0.6, 0.75, 1], [1, 1, 1], rng()), 0.18 + 0.4 * rng()),
       0.3 + 0.5 * rng(),
     );
   }
@@ -478,7 +478,7 @@ export const atomPreset: Preset = {
   legend:
     'Each ball is a language, sized by its share of your code and wearing its logo · the particle kitten at the centre is your year: each bright star is a day, newer days higher up, dim when quiet and larger when busy · the beads on the rings are repositories, sized by stars · the glow, the faint lines and the starfield are decoration',
   caption: 'Balls: languages by share · Stars: days, newer higher up · Ring beads: repositories',
-  view: { yaw: 0.4, pitch: 0.22, distance: 54, fov: Math.PI / 4 },
+  view: { yaw: Math.PI + 0.4, pitch: 0.22, distance: 54, fov: Math.PI / 4 },
   size: { width: 720, height: 720 },
   build: buildAtom,
 };
