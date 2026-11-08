@@ -2,7 +2,6 @@ import {
   createParticleState,
   createRng,
   drag,
-  jitter,
   scatterInBox,
   spring,
   type ParticleState,
@@ -12,6 +11,8 @@ import { dayEntity, repositoryEntity } from './entities';
 import { hexToRgb, logScale, scaleColor, type Rgb } from './scale';
 import { getSilhouette } from './tree-silhouette';
 import type { Entity, Preset, PresetOptions, PresetResult } from './types';
+
+type Behaviour = PresetResult['behaviours'][number];
 
 /** World height of the tree and where its base sits; the baked silhouette is 1 tall. */
 const SCALE = 20;
@@ -25,9 +26,29 @@ const GOLDEN_ANGLE = 2.399963229728653;
 const TAU = Math.PI * 2;
 const FALLBACK_COLOR = '#8b949e';
 
-/** Shares of the non-data (dust) particles. The foliage haze takes whatever is left. */
-const TRUNK_SHARE = 0.09;
-const BRANCH_SHARE = 0.18;
+/**
+ * Shares of the non-data (dust) particles. The wood gets a big share because it has to read as
+ * solid; the foliage haze takes whatever is left.
+ */
+const TRUNK_SHARE = 0.22;
+const BRANCH_SHARE = 0.28;
+/**
+ * Wood sprites overlap and their light adds up, so each point's colour is scaled down by
+ * WOOD_GAIN to land on a natural brightness once the overlaps are summed.
+ */
+const WOOD_GAIN = 0.3;
+const TRUNK_SIZE = 1.5;
+const BRANCH_SIZE = 0.9;
+/** A thinned-out wood set grows its sprites by this much at most to keep the surface covered. */
+const MAX_WOOD_GROWTH = 2.2;
+/** One fixed light, from above and to the left, so the wood reads as lit from one side. */
+const LIGHT = (() => {
+  const x = -0.45;
+  const y = 0.75;
+  const z = 0.5;
+  const length = Math.hypot(x, y, z);
+  return { x: x / length, y: y / length, z: z / length };
+})();
 /** How far a busy day's glow reaches into the surrounding foliage, in world units. */
 const GLOW_RADIUS = 3;
 /** Day tips avoid the inner crown: they keep points beyond this share of the local reach. */
@@ -44,7 +65,11 @@ const RAMP: [number, Rgb][] = [
   [1, [0.45, 1, 0.55]],
 ];
 const FOLIAGE: Rgb = [0.12, 0.68, 0.34];
-const BARK: Rgb = [0.55, 0.3, 0.2];
+/** Wood is a warm copper where the light hits it and a cool dark teal in shadow. */
+const LIT: Rgb = [0.85, 0.55, 0.32];
+const SHADE: Rgb = [0.16, 0.2, 0.26];
+/** Bright green sap that twists up the trunk. */
+const SAP: Rgb = [0.45, 1, 0.55];
 
 interface Point {
   x: number;
@@ -207,6 +232,19 @@ function placeAnchors(pool: Point[], months: Month[], total: number): Point[] {
   return anchors;
 }
 
+/** Like `jitter`, but it leaves one range of particles (the solid wood) perfectly still. */
+function foliageJitter(strength: number, still: { from: number; to: number }): Behaviour {
+  return (state, { dt, rng }) => {
+    const { velocity } = state;
+    const low = still.from * 3;
+    const high = still.to * 3;
+    for (let i = 0; i < velocity.length; i++) {
+      if (i >= low && i < high) continue;
+      velocity[i] += (rng() * 2 - 1) * strength * dt;
+    }
+  };
+}
+
 /**
  * Data encodings:
  * - the crown climbs through time: one ring per calendar month, oldest lowest, days sweeping
@@ -318,13 +356,69 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
     }
   });
 
-  // Bark: the model's own trunk and branches.
-  const bark = (p: Point): void =>
-    put(state, index++, p.x, p.y, p.z, scaleColor(BARK, 0.6 + 0.4 * rng()), 0.5 + 0.4 * rng());
-  const trunkCount = Math.floor(dustCount * TRUNK_SHARE);
-  for (let j = 0; j < trunkCount; j++) bark(bakedPoint(silhouette.trunk, j, rng));
-  const branchCount = Math.floor(dustCount * BRANCH_SHARE);
-  for (let j = 0; j < branchCount; j++) bark(bakedPoint(silhouette.branches, j, rng));
+  // Wood: the model's own trunk and branches, lit by one fixed light so it reads as solid. The
+  // sprites are big enough to overlap into a continuous surface, and the trunk carries twisting
+  // strands of bright sap.
+  const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
+  const smoothstep = (from: number, to: number, value: number): number => {
+    const t = clamp01((value - from) / (to - from));
+    return t * t * (3 - 2 * t);
+  };
+  const woodStart = index;
+  const wood = (
+    points: Float32Array,
+    normals: Float32Array,
+    budget: number,
+    size: number,
+    trunk: boolean,
+  ): void => {
+    const baked = points.length / 3;
+    const used = Math.min(baked, budget);
+    // A prefix of the baked points is an evenly thinned set, so fewer points get bigger sprites.
+    const grow = Math.min(MAX_WOOD_GROWTH, Math.sqrt(baked / Math.max(1, used)));
+    for (let j = 0; j < used; j++) {
+      const p = bakedPoint(points, j, rng);
+      const facing = clamp01(
+        0.5 +
+          0.5 *
+            (normals[j * 3] * LIGHT.x +
+              normals[j * 3 + 1] * LIGHT.y +
+              normals[j * 3 + 2] * LIGHT.z),
+      );
+      let color = lerp(SHADE, LIT, facing ** 1.5);
+      let gain = WOOD_GAIN * (0.85 + 0.3 * rng());
+      if (trunk) {
+        const grain = Math.sin(Math.atan2(p.z, p.x) * 7 + (p.y - BASE_Y) * 1.3);
+        const sap = smoothstep(0.88, 1, grain);
+        color = lerp(color, SAP, 0.85 * sap);
+        gain *= 0.85 + 0.15 * grain + 1.4 * sap;
+      }
+      put(
+        state,
+        index++,
+        p.x,
+        p.y,
+        p.z,
+        scaleColor(color, Math.min(1, gain)),
+        size * grow * (0.85 + 0.3 * rng()),
+      );
+    }
+  };
+  wood(
+    silhouette.trunk,
+    silhouette.trunkNormals,
+    Math.floor(dustCount * TRUNK_SHARE),
+    TRUNK_SIZE,
+    true,
+  );
+  wood(
+    silhouette.branches,
+    silhouette.branchNormals,
+    Math.floor(dustCount * BRANCH_SHARE),
+    BRANCH_SIZE,
+    false,
+  );
+  const woodEnd = index;
 
   // Foliage haze: the baked crown. It fills the rest of the budget, so the whole outline is
   // always there, and each point takes its colour and glow from the nearest day.
@@ -374,7 +468,7 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
     entities,
     behaviours: [
       spring({ stiffness: 6, damping: 4 }),
-      jitter({ strength: 0.55 }),
+      foliageJitter(0.55, { from: woodStart, to: woodEnd }),
       drag({ coefficient: 0.2 }),
     ],
   };

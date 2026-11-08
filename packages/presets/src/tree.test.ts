@@ -1,3 +1,4 @@
+import { Simulation } from '@starforge/core';
 import { createSampleMetrics, type Metrics } from '@starforge/github-data';
 import { describe, expect, it } from 'vitest';
 import { buildGalaxy } from './galaxy';
@@ -79,6 +80,21 @@ describe('buildTree', () => {
     const roots = entities.filter((entity) => entity.kind === 'repository');
     expect(roots.length).toBeGreaterThan(0);
     for (const root of roots) expect(state.target[root.particle * 3 + 1]).toBeLessThan(-10);
+  });
+
+  it('keeps the wood perfectly still while the foliage shimmers', () => {
+    const { state, behaviours, seed } = buildTree(sample, { particleCount: 4000 });
+    const sim = new Simulation({ state, behaviours, seed });
+    sim.run(30);
+    let still = 0;
+    let moved = 0;
+    for (let i = 0; i < state.count; i++) {
+      const home = [0, 1, 2].every((k) => state.position[i * 3 + k] === state.target[i * 3 + k]);
+      if (home) still++;
+      else moved++;
+    }
+    expect(still).toBeGreaterThan(state.count * 0.3);
+    expect(moved).toBeGreaterThan(state.count * 0.3);
   });
 
   it('colours fresh twigs greener than old ones', () => {
