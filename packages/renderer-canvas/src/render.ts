@@ -1,6 +1,6 @@
 import type { ParticleState, SolidMesh } from '@starforge/core';
 import { applyBloom, type BloomOptions } from './bloom';
-import { rasterizeMesh } from './mesh';
+import { rasterizeSolids, type PlacedMesh } from './mesh';
 
 export interface Camera {
   /** Rotation around the vertical axis, radians. A full 2π turn returns to the start. */
@@ -30,6 +30,8 @@ export interface RenderOptions {
    * behind it are hidden, and particles in front of it still glow over it.
    */
   mesh?: SolidMesh;
+  /** More solid geometry, each mesh placed by a pose. It is drawn together with `mesh`. */
+  bodies?: PlacedMesh[];
 }
 
 export interface Frame {
@@ -74,7 +76,8 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
   const centerX = width / 2;
   const centerY = height / 2;
   const { position, color, size } = state;
-  const solid = options.mesh ? rasterizeMesh(options.mesh, camera, width, height) : null;
+  const solids = [...(options.mesh ? [{ mesh: options.mesh }] : []), ...(options.bodies ?? [])];
+  const solid = solids.length > 0 ? rasterizeSolids(solids, camera, width, height) : null;
 
   for (let p = 0; p < state.count; p++) {
     const i = p * 3;
@@ -133,7 +136,11 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
   const data = new Uint8ClampedArray(width * height * 4);
   for (let pixel = 0; pixel < width * height; pixel++) {
     const k = pixel * 3;
-    const o = pixel * 4;
+    // The camera looks along +z, which would mirror a right-handed scene, so each row is
+    // written back to front. The result matches the web viewer, where logos and text read
+    // the right way round.
+    const column = pixel % width;
+    const o = (pixel - column + (width - 1 - column)) * 4;
     const r = tone(accum[k] * exposure);
     const g = tone(accum[k + 1] * exposure);
     const b = tone(accum[k + 2] * exposure);

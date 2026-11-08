@@ -1,5 +1,3 @@
-import type { Entity } from '@starforge/presets';
-
 const MARGIN = 8;
 const OFFSET = 16;
 
@@ -25,7 +23,7 @@ export function placeTooltip(
 }
 
 export interface Tooltip {
-  show(entity: Entity, x: number, y: number): void;
+  show(entity: { title: string; detail: string }, x: number, y: number): void;
   hide(): void;
 }
 

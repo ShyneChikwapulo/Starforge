@@ -102,6 +102,7 @@ Everything is deterministic: the same data and seed always produce the same pict
 | `galaxy` | Languages as spiral arms, repositories as stars, one ring dot per day                                                                                          |
 | `tunnel` | Time as depth, the year as a spiral along the wall, languages as stripes, repositories as bright nodes                                                         |
 | `tree`   | Your year as a solid tree: the crown climbs through time with a ring per month, bright tips are days, glowing leaves are contributions, roots are repositories |
+| `atom`   | Your languages as logo balls orbiting rings round a particle kitten: ball size is share of code, bright stars are days, beads on the rings are repositories    |
 
 Choose one with `"preset"` in `starforge.config.json`. The interactive viewer has a switch between
 them and morphs one into the other (`?preset=tunnel` opens it directly).
@@ -150,6 +151,16 @@ by [Daniel](https://sketchfab.com/danielpetrov), licensed under
 model was rescaled, its wood was re-meshed and its leaves were resampled as points. Only that baked
 result is in this repository (`packages/presets/src/tree-silhouette-data.ts`);
 `pnpm exec tsx scripts/bake-tree-model.ts` rebuilds it from the original download.
+
+The `atom` preset's nucleus comes from
+["Github_kitten"](https://sketchfab.com/3d-models/github-kitten-83d5a6d1a12b4427bbfd662fbc478f8d)
+by [m.adityamondal2003](https://sketchfab.com/m.adityamondal2003), licensed under
+[CC BY 4.0](http://creativecommons.org/licenses/by/4.0/). The model was posed at rest, rescaled
+and resampled as points, with links between neighbouring points. Its language logos come from
+[Devicon](https://devicon.dev) (MIT); the logos themselves are trademarks of their owners. Only the
+baked results are in this repository (`packages/presets/src/atom-kitten-data.ts` and
+`language-icons-data.ts`); `scripts/bake-atom-kitten.ts` and `scripts/bake-language-icons.ts`
+rebuild them.
 
 ## License
 
