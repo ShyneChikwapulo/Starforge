@@ -97,11 +97,11 @@ Everything is deterministic: the same data and seed always produce the same pict
 
 ## Presets
 
-| Preset   | What it shows                                                                                                      |
-| -------- | ------------------------------------------------------------------------------------------------------------------ |
-| `galaxy` | Languages as spiral arms, repositories as stars, one ring dot per day                                              |
-| `tunnel` | Time as depth, the year as a spiral along the wall, languages as stripes, repositories as bright nodes             |
-| `tree`   | Your year as a tree: branches are months, twigs are days, glowing leaves are contributions, roots are repositories |
+| Preset   | What it shows                                                                                                                                                  |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `galaxy` | Languages as spiral arms, repositories as stars, one ring dot per day                                                                                          |
+| `tunnel` | Time as depth, the year as a spiral along the wall, languages as stripes, repositories as bright nodes                                                         |
+| `tree`   | Your year as a solid tree: the crown climbs through time with a ring per month, bright tips are days, glowing leaves are contributions, roots are repositories |
 
 Choose one with `"preset"` in `starforge.config.json`. The interactive viewer has a switch between
 them and morphs one into the other (`?preset=tunnel` opens it directly).
@@ -140,6 +140,16 @@ GITHUB_TOKEN=$(gh auth token) pnpm --filter @starforge/cli starforge generate --
 ```
 
 Animated WebP output needs libwebp's `img2webp` (`brew install webp`, or `apt-get install webp`).
+
+## Credits
+
+The `tree` preset's trunk and crown shape come from
+["Stylized Tree"](https://sketchfab.com/3d-models/stylized-tree-2a00182b3ca4403da3f9e157184e4b42)
+by [Daniel](https://sketchfab.com/danielpetrov), licensed under
+[CC BY 4.0](http://creativecommons.org/licenses/by/4.0/). The ground and grass were removed, the
+model was rescaled, its wood was re-meshed and its leaves were resampled as points. Only that baked
+result is in this repository (`packages/presets/src/tree-silhouette-data.ts`);
+`pnpm exec tsx scripts/bake-tree-model.ts` rebuilds it from the original download.
 
 ## License
 

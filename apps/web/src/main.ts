@@ -58,6 +58,7 @@ async function main(): Promise<void> {
       brightness: params.brightness,
     });
     viewer.setParticles(state);
+    viewer.setMesh(first.mesh ?? null);
     viewer.setView(presets[current].view);
     viewer.onFrame(() => simulation.step());
 
@@ -84,6 +85,7 @@ async function main(): Promise<void> {
       state.color.set(next.state.color);
       state.size.set(next.state.size);
       viewer.invalidateAppearance();
+      viewer.setMesh(next.mesh ?? null);
       viewer.setView(presets[id].view);
 
       entities = next.entities;

@@ -51,6 +51,63 @@ describe('buildTree', () => {
     expect(state.target[1]).toBeLessThan(state.target[last * 3 + 1]);
   });
 
+  it('keeps every day tip inside the crown, which is wider than the trunk', () => {
+    const { state } = buildTree(sample);
+    for (let i = 0; i < calendar.length; i++) {
+      const y = state.target[i * 3 + 1];
+      expect(y).toBeGreaterThan(-10);
+      expect(y).toBeLessThanOrEqual(10.5);
+      expect(Math.hypot(state.target[i * 3], state.target[i * 3 + 2])).toBeLessThan(16);
+    }
+  });
+
+  it('stacks the months as rings from the lowest to the highest', () => {
+    const { state } = buildTree(sample);
+    const months = new Map<string, { sum: number; n: number }>();
+    calendar.forEach((day, i) => {
+      const entry = months.get(day.date.slice(0, 7)) ?? { sum: 0, n: 0 };
+      entry.sum += state.target[i * 3 + 1];
+      entry.n += 1;
+      months.set(day.date.slice(0, 7), entry);
+    });
+    const means = [...months.values()].map((entry) => entry.sum / entry.n);
+    for (let i = 1; i < means.length; i++) expect(means[i]).toBeGreaterThanOrEqual(means[i - 1]);
+  });
+
+  it('plants the roots below the base of the trunk', () => {
+    const { state, entities } = buildTree(sample);
+    const roots = entities.filter((entity) => entity.kind === 'repository');
+    expect(roots.length).toBeGreaterThan(0);
+    for (const root of roots) expect(state.target[root.particle * 3 + 1]).toBeLessThan(-10);
+  });
+
+  it('returns the wood as a solid mesh that stands between the roots and the crown', () => {
+    const { mesh } = buildTree(sample);
+    expect(mesh).toBeDefined();
+    const { positions, normals, colors, indices } = mesh!;
+    expect(normals.length).toBe(positions.length);
+    expect(colors.length).toBe(positions.length);
+    expect(indices.length % 3).toBe(0);
+    let top = 0;
+    for (const vertex of indices) if (vertex > top) top = vertex;
+    expect(top).toBeLessThan(positions.length / 3);
+    let low = Infinity;
+    let high = -Infinity;
+    for (let i = 1; i < positions.length; i += 3) {
+      low = Math.min(low, positions[i]);
+      high = Math.max(high, positions[i]);
+    }
+    expect(low).toBeGreaterThan(-11);
+    expect(high).toBeLessThan(11);
+    expect(Array.from(colors).every((c) => c >= 0 && c <= 1)).toBe(true);
+  });
+
+  it('keeps the wood the same whatever the particle budget', () => {
+    const small = buildTree(sample, { particleCount: 2000 }).mesh!;
+    const large = buildTree(sample).mesh!;
+    expect(small.positions).toEqual(large.positions);
+  });
+
   it('colours fresh twigs greener than old ones', () => {
     const { state } = buildTree(sample);
     const active = calendar.map((day, i) => (day.count > 0 ? i : -1)).filter((i) => i >= 0);

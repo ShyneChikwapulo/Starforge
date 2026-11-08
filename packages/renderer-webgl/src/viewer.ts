@@ -1,12 +1,14 @@
-import type { ParticleState } from '@starforge/core';
+import type { ParticleState, SolidMesh } from '@starforge/core';
 import {
   AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
   Color,
   ColorManagement,
+  DoubleSide,
   DynamicDrawUsage,
   LinearSRGBColorSpace,
+  Mesh,
   PerspectiveCamera,
   Points,
   ReinhardToneMapping,
@@ -65,6 +67,40 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
+const meshVertexShader = /* glsl */ `
+  attribute vec3 aColor;
+  varying vec3 vColor;
+  varying vec3 vNormal;
+
+  void main() {
+    vColor = aColor;
+    vNormal = normalMatrix * normal;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const meshFragmentShader = /* glsl */ `
+  uniform float uOpacity;
+  uniform float uExposure;
+  varying vec3 vColor;
+  varying vec3 vNormal;
+
+  // The README renderer's key light, ambient level and rim, in view space.
+  const vec3 LIGHT = vec3(-0.395, 0.543, 0.741);
+  const vec3 RIM = vec3(0.12, 0.34, 0.3);
+
+  void main() {
+    vec3 n = normalize(vNormal);
+    if (n.z < 0.0) n = -n;
+    float lambert = max(dot(n, LIGHT), 0.0);
+    float light = 0.32 + 0.68 * lambert;
+    float edge = 1.0 - min(1.0, abs(n.z));
+    vec3 color = min(vColor * light + RIM * edge * edge * 0.6, vec3(0.92));
+    // Everything goes through tone mapping, so undo it here: the wood then lands on this colour.
+    gl_FragColor = vec4(color / (vec3(1.0) - color) / uExposure, uOpacity);
+  }
+`;
+
 export interface ViewerOptions {
   canvas: HTMLCanvasElement;
   /** Background as "#rrggbb". Default matches the README renderer. */
@@ -89,6 +125,11 @@ export interface HoverHit {
 export interface Viewer {
   /** Show these particles. The viewer reads their positions every frame. */
   setParticles(state: ParticleState): void;
+  /**
+   * Show solid geometry (a preset's wood) as lit, depth-tested triangles that particles behind
+   * it cannot show through. Pass null to fade it out. It eases in and out with the morph.
+   */
+  setMesh(mesh: SolidMesh | null): void;
   /** Called once per frame before rendering, for example to advance a simulation. */
   onFrame(callback: (() => void) | null): void;
   /** Which particles can be hovered or tapped, as indices into the particle state. */
@@ -111,11 +152,12 @@ export function createViewer(options: ViewerOptions): Viewer {
   const { canvas } = options;
   const brightness = options.brightness ?? 0.9;
   const autoRotate = options.autoRotate ?? true;
+  const exposure = options.exposure ?? 1.2;
 
   const renderer = new WebGLRenderer({ canvas, antialias: false });
   renderer.outputColorSpace = LinearSRGBColorSpace;
   renderer.toneMapping = ReinhardToneMapping;
-  renderer.toneMappingExposure = options.exposure ?? 1.2;
+  renderer.toneMappingExposure = exposure;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   const scene = new Scene();
@@ -140,10 +182,22 @@ export function createViewer(options: ViewerOptions): Viewer {
     vertexShader,
     fragmentShader,
     transparent: true,
-    depthTest: false,
+    depthTest: true,
     depthWrite: false,
     blending: AdditiveBlending,
   });
+
+  const meshMaterial = new ShaderMaterial({
+    uniforms: { uOpacity: { value: 0 }, uExposure: { value: exposure } },
+    vertexShader: meshVertexShader,
+    fragmentShader: meshFragmentShader,
+    transparent: true,
+    depthTest: true,
+    depthWrite: true,
+    side: DoubleSide,
+  });
+  let solid: Mesh | null = null;
+  let solidTarget = 0;
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
@@ -298,10 +352,45 @@ export function createViewer(options: ViewerOptions): Viewer {
     scene.add(points);
   }
 
+  function setMesh(mesh: SolidMesh | null): void {
+    if (!mesh) {
+      solidTarget = 0;
+      return;
+    }
+    if (solid) {
+      scene.remove(solid);
+      solid.geometry.dispose();
+    }
+    const geometry = new BufferGeometry();
+    geometry.setAttribute('position', new BufferAttribute(mesh.positions, 3));
+    geometry.setAttribute('normal', new BufferAttribute(mesh.normals, 3));
+    geometry.setAttribute('aColor', new BufferAttribute(mesh.colors, 3));
+    geometry.setIndex(new BufferAttribute(mesh.indices, 1));
+    solid = new Mesh(geometry, meshMaterial);
+    solid.frustumCulled = false;
+    solid.renderOrder = -1;
+    scene.add(solid);
+    solidTarget = 1;
+  }
+
+  /** Ease the mesh in or out, so it follows the particles' morph instead of popping. */
+  function stepMesh(): void {
+    if (!solid) return;
+    const opacity = meshMaterial.uniforms.uOpacity;
+    opacity.value += (solidTarget - opacity.value) * 0.05;
+    if (solidTarget === 0 && opacity.value < 0.01) {
+      scene.remove(solid);
+      solid.geometry.dispose();
+      solid = null;
+      opacity.value = 0;
+    }
+  }
+
   renderer.setAnimationLoop(() => {
     frameCallback?.();
     if (points) (points.geometry.getAttribute('position') as BufferAttribute).needsUpdate = true;
     stepView();
+    stepMesh();
     controls.update();
     material.uniforms.uDistance.value = camera.position.length();
     updateHover();
@@ -310,6 +399,7 @@ export function createViewer(options: ViewerOptions): Viewer {
 
   return {
     setParticles,
+    setMesh,
     onFrame(callback) {
       frameCallback = callback;
     },
@@ -333,6 +423,8 @@ export function createViewer(options: ViewerOptions): Viewer {
       canvas.removeEventListener('pointerup', onPointerUp);
       controls.dispose();
       points?.geometry.dispose();
+      solid?.geometry.dispose();
+      meshMaterial.dispose();
       material.dispose();
       composer.dispose();
       renderer.dispose();

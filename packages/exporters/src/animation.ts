@@ -41,7 +41,7 @@ export function renderLoop(preset: Preset, metrics: Metrics, options: LoopOption
   const seed = options.seed ?? 1;
   const overlap = options.overlap ?? Math.max(1, Math.round(length / 4));
 
-  const { state, behaviours } = preset.build(metrics, {
+  const { state, behaviours, mesh } = preset.build(metrics, {
     seed,
     particleCount: options.particleCount,
   });
@@ -64,6 +64,7 @@ export function renderLoop(preset: Preset, metrics: Metrics, options: LoopOption
       height,
       camera: orbitCamera(camera, i / length),
       background,
+      mesh,
       exposure: options.exposure ?? 1.4,
       bloom: options.bloom === undefined ? DEFAULT_BLOOM : (options.bloom ?? undefined),
     });
