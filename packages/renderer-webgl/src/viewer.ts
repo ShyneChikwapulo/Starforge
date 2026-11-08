@@ -1,4 +1,4 @@
-import type { ParticleState, SolidMesh } from '@starforge/core';
+import type { ParticleState, SolidBody, SolidMesh } from '@starforge/core';
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -34,6 +34,8 @@ const REFERENCE_PARTICLES = 6000;
 const HIT_RADIUS = 22;
 /** A touch that moves less than this many pixels counts as a tap, not a drag. */
 const TAP_SLOP = 8;
+/** Seconds for one loop of a preset's moving bodies, so a body turning once per loop takes this long. */
+const LOOP_SECONDS = 36;
 
 const vertexShader = /* glsl */ `
   attribute vec3 aColor;
@@ -115,8 +117,10 @@ export interface ViewerOptions {
 }
 
 export interface HoverHit {
-  /** Index into the list passed to setHoverTargets. */
+  /** Index into the list passed to setHoverTargets, or into the bodies when `body` is true. */
   index: number;
+  /** True when a solid body was hit instead of a particle. */
+  body?: boolean;
   /** Where that particle is on screen, in viewport pixels. */
   x: number;
   y: number;
@@ -130,6 +134,12 @@ export interface Viewer {
    * it cannot show through. Pass null to fade it out. It eases in and out with the morph.
    */
   setMesh(mesh: SolidMesh | null): void;
+  /**
+   * Show solid bodies that move, such as orbiting balls. Each one is placed by its pose every
+   * frame and turned to face the camera, so a logo on it stays readable. A body with a label can
+   * be hovered. Pass null to fade them out together with the mesh.
+   */
+  setBodies(bodies: SolidBody[] | null): void;
   /** Called once per frame before rendering, for example to advance a simulation. */
   onFrame(callback: (() => void) | null): void;
   /** Which particles can be hovered or tapped, as indices into the particle state. */
@@ -197,7 +207,15 @@ export function createViewer(options: ViewerOptions): Viewer {
     side: DoubleSide,
   });
   let solid: Mesh | null = null;
-  let solidTarget = 0;
+  let wantMesh = false;
+  let wantBodies = false;
+  interface PlacedBody {
+    body: SolidBody;
+    mesh: Mesh;
+    /** Radius of the body's mesh, for hit testing. */
+    radius: number;
+  }
+  let placed: PlacedBody[] = [];
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
@@ -256,26 +274,46 @@ export function createViewer(options: ViewerOptions): Viewer {
   canvas.addEventListener('pointerup', onPointerUp);
 
   function pick(): HoverHit | null {
-    if (!pointer || !points || hoverTargets.length === 0) return null;
+    if (!pointer) return null;
     const rect = canvas.getBoundingClientRect();
-    const positions = (points.geometry.getAttribute('position') as BufferAttribute)
-      .array as Float32Array;
     camera.updateMatrixWorld();
 
     let best: HoverHit | null = null;
     let bestDistance = HIT_RADIUS;
-    for (let k = 0; k < hoverTargets.length; k++) {
-      const offset = hoverTargets[k] * 3;
-      projected
-        .set(positions[offset], positions[offset + 1], positions[offset + 2])
-        .project(camera);
+    if (points && hoverTargets.length > 0) {
+      const positions = (points.geometry.getAttribute('position') as BufferAttribute)
+        .array as Float32Array;
+      for (let k = 0; k < hoverTargets.length; k++) {
+        const offset = hoverTargets[k] * 3;
+        projected
+          .set(positions[offset], positions[offset + 1], positions[offset + 2])
+          .project(camera);
+        if (projected.z > 1) continue;
+        const x = (projected.x * 0.5 + 0.5) * rect.width;
+        const y = (-projected.y * 0.5 + 0.5) * rect.height;
+        const distance = Math.hypot(x - pointer.x, y - pointer.y);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = { index: k, x: rect.left + x, y: rect.top + y };
+        }
+      }
+    }
+
+    // A solid body wins when the pointer is on it, however big it is on screen.
+    const pixelsPerUnit = rect.height / 2 / Math.tan((camera.fov * Math.PI) / 360);
+    for (let b = 0; b < placed.length; b++) {
+      const item = placed[b];
+      if (!item.body.label) continue;
+      projected.copy(item.mesh.position).project(camera);
       if (projected.z > 1) continue;
       const x = (projected.x * 0.5 + 0.5) * rect.width;
       const y = (-projected.y * 0.5 + 0.5) * rect.height;
-      const distance = Math.hypot(x - pointer.x, y - pointer.y);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = { index: k, x: rect.left + x, y: rect.top + y };
+      const reach = Math.max(
+        HIT_RADIUS,
+        (item.radius * pixelsPerUnit) / camera.position.distanceTo(item.mesh.position),
+      );
+      if (Math.hypot(x - pointer.x, y - pointer.y) <= reach) {
+        return { index: b, body: true, x: rect.left + x, y: rect.top + y };
       }
     }
     return best;
@@ -352,37 +390,80 @@ export function createViewer(options: ViewerOptions): Viewer {
     scene.add(points);
   }
 
-  function setMesh(mesh: SolidMesh | null): void {
-    if (!mesh) {
-      solidTarget = 0;
-      return;
-    }
-    if (solid) {
-      scene.remove(solid);
-      solid.geometry.dispose();
-    }
+  const geometryOf = (mesh: SolidMesh): BufferGeometry => {
     const geometry = new BufferGeometry();
     geometry.setAttribute('position', new BufferAttribute(mesh.positions, 3));
     geometry.setAttribute('normal', new BufferAttribute(mesh.normals, 3));
     geometry.setAttribute('aColor', new BufferAttribute(mesh.colors, 3));
     geometry.setIndex(new BufferAttribute(mesh.indices, 1));
-    solid = new Mesh(geometry, meshMaterial);
+    return geometry;
+  };
+
+  function removeSolid(): void {
+    if (!solid) return;
+    scene.remove(solid);
+    solid.geometry.dispose();
+    solid = null;
+  }
+
+  function clearBodies(): void {
+    for (const item of placed) {
+      scene.remove(item.mesh);
+      item.mesh.geometry.dispose();
+    }
+    placed = [];
+  }
+
+  function setMesh(mesh: SolidMesh | null): void {
+    wantMesh = mesh !== null;
+    if (!mesh) return;
+    removeSolid();
+    solid = new Mesh(geometryOf(mesh), meshMaterial);
     solid.frustumCulled = false;
     solid.renderOrder = -1;
     scene.add(solid);
-    solidTarget = 1;
   }
 
-  /** Ease the mesh in or out, so it follows the particles' morph instead of popping. */
+  function setBodies(bodies: SolidBody[] | null): void {
+    wantBodies = bodies !== null && bodies.length > 0;
+    if (!bodies || bodies.length === 0) return;
+    clearBodies();
+    for (const body of bodies) {
+      const mesh = new Mesh(geometryOf(body.mesh), meshMaterial);
+      mesh.frustumCulled = false;
+      mesh.renderOrder = -1;
+      scene.add(mesh);
+      let radius = 0;
+      const { positions } = body.mesh;
+      for (let i = 0; i < positions.length; i += 3) {
+        radius = Math.max(radius, Math.hypot(positions[i], positions[i + 1], positions[i + 2]));
+      }
+      placed.push({ body, mesh, radius });
+    }
+  }
+
+  /** Ease the solids in or out so they follow the particles' morph, and place the moving bodies. */
   function stepMesh(): void {
-    if (!solid) return;
+    // Moving from a preset with one kind of solid to one with another swaps at once.
+    if (!wantMesh && wantBodies) removeSolid();
+    if (wantMesh && !wantBodies) clearBodies();
+    if (!solid && placed.length === 0) return;
+
     const opacity = meshMaterial.uniforms.uOpacity;
-    opacity.value += (solidTarget - opacity.value) * 0.05;
-    if (solidTarget === 0 && opacity.value < 0.01) {
-      scene.remove(solid);
-      solid.geometry.dispose();
-      solid = null;
+    opacity.value += ((wantMesh || wantBodies ? 1 : 0) - opacity.value) * 0.05;
+    if (!wantMesh && !wantBodies && opacity.value < 0.01) {
+      removeSolid();
+      clearBodies();
       opacity.value = 0;
+      return;
+    }
+
+    const turns = performance.now() / 1000 / LOOP_SECONDS;
+    for (const item of placed) {
+      const pose = item.body.pose(turns);
+      item.mesh.position.set(pose.x, pose.y, pose.z);
+      // Turn the front towards the camera, so a logo stays readable from wherever you look.
+      item.mesh.rotation.y = Math.atan2(camera.position.x - pose.x, camera.position.z - pose.z);
     }
   }
 
@@ -400,6 +481,7 @@ export function createViewer(options: ViewerOptions): Viewer {
   return {
     setParticles,
     setMesh,
+    setBodies,
     onFrame(callback) {
       frameCallback = callback;
     },
@@ -424,6 +506,7 @@ export function createViewer(options: ViewerOptions): Viewer {
       controls.dispose();
       points?.geometry.dispose();
       solid?.geometry.dispose();
+      clearBodies();
       meshMaterial.dispose();
       material.dispose();
       composer.dispose();
