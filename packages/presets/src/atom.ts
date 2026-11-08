@@ -24,6 +24,8 @@ const MAX_REPOS = 100;
 const DEFAULT_PARTICLES = 16000;
 const GOLDEN_ANGLE = 2.399963229728653;
 const TAU = Math.PI * 2;
+/** The camera's starting yaw. The balls counter-spin against its orbit, so logos face it. */
+const VIEW_YAW = Math.PI + 0.4;
 const FALLBACK_COLOR = '#8b949e';
 
 /** Shares of the non-data (dust) particles. The kitten takes whatever is left. */
@@ -245,12 +247,10 @@ function lift(color: Rgb): Rgb {
   ];
 }
 
-/** Forward directions of the four logo faces: +z, +x, -z, -x. */
+/** Forward directions of the two logo faces, front and back: +z and -z. */
 const FACES: [number, number][] = [
   [0, 1],
-  [1, 0],
   [0, -1],
-  [-1, 0],
 ];
 
 /** The logo colour at unit direction d on a ball, or null where the ball shows through. */
@@ -303,7 +303,7 @@ function sphereMesh(radius: number, icon: LanguageIcon | undefined, language: Rg
 /**
  * Data encodings:
  * - each ball is a language: its radius follows the square root of its share of your code, and it
- *   wears its logo on four sides. The top six languages ride three interlocking rings, two to a
+ *   wears its logo on its front and back. The top six languages ride three interlocking rings, two to a
  *   ring, and every ring turns a whole number of times per loop so the animation loops cleanly
  * - the particle kitten at the centre is your year: each bright star is a calendar day, older
  *   days low and newer days high, dim when nothing happened and larger when busy
@@ -442,9 +442,8 @@ export function buildAtom(metrics: Metrics, options: PresetOptions = {}): Preset
     const slot = Math.floor(i / RINGS.length);
     const onRing = Math.ceil((languages.length - (i % RINGS.length)) / RINGS.length);
     const phase = ring.phase + (TAU * slot) / onRing;
-    const spinDirection = ring.revolutions > 0 ? 1 : -1;
-    const spin0 = i * 0.9;
-    const radius = 1.1 + 1.9 * Math.sqrt(language.share / topShare);
+    const tilt = ((i % 3) - 1) * 0.18;
+    const radius = 1.6 + 2.2 * Math.sqrt(language.share / topShare);
     return {
       mesh: sphereMesh(
         radius,
@@ -453,7 +452,7 @@ export function buildAtom(metrics: Metrics, options: PresetOptions = {}): Preset
       ),
       pose: (turns) => {
         const [x, y, z] = ringPoint(ring, phase + TAU * ring.revolutions * turns);
-        return { x, y, z, spin: spin0 + TAU * spinDirection * turns };
+        return { x, y, z, spin: Math.PI - VIEW_YAW - TAU * turns + tilt };
       },
     };
   });
@@ -478,7 +477,7 @@ export const atomPreset: Preset = {
   legend:
     'Each ball is a language, sized by its share of your code and wearing its logo · the particle kitten at the centre is your year: each bright star is a day, newer days higher up, dim when quiet and larger when busy · the beads on the rings are repositories, sized by stars · the glow, the faint lines and the starfield are decoration',
   caption: 'Balls: languages by share · Stars: days, newer higher up · Ring beads: repositories',
-  view: { yaw: Math.PI + 0.4, pitch: 0.22, distance: 54, fov: Math.PI / 4 },
+  view: { yaw: VIEW_YAW, pitch: 0.22, distance: 54, fov: Math.PI / 4 },
   size: { width: 720, height: 720 },
   build: buildAtom,
 };
