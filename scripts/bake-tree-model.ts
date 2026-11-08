@@ -434,6 +434,30 @@ ${entry('leaves')}
 `;
 }
 
+/** Clip a triangle soup to y >= minY, so the cut is a flat plane instead of a ragged edge. */
+function clipAbove(soup: number[], minY: number): number[] {
+  const out: number[] = [];
+  for (let t = 0; t < soup.length; t += 9) {
+    const kept: number[][] = [];
+    for (let i = 0; i < 3; i++) {
+      const a = [soup[t + i * 3]!, soup[t + i * 3 + 1]!, soup[t + i * 3 + 2]!];
+      const j = (i + 1) % 3;
+      const b = [soup[t + j * 3]!, soup[t + j * 3 + 1]!, soup[t + j * 3 + 2]!];
+      const aIn = a[1]! >= minY;
+      const bIn = b[1]! >= minY;
+      if (aIn) kept.push(a);
+      if (aIn !== bIn) {
+        const f = (minY - a[1]!) / (b[1]! - a[1]!);
+        kept.push([a[0]! + (b[0]! - a[0]!) * f, minY, a[2]! + (b[2]! - a[2]!) * f]);
+      }
+    }
+    for (let i = 1; i + 1 < kept.length; i++) {
+      for (const p of [kept[0]!, kept[i]!, kept[i + 1]!]) out.push(p[0]!, p[1]!, p[2]!);
+    }
+  }
+  return out;
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const flag = args.indexOf('--ground-y');
@@ -449,13 +473,8 @@ async function main(): Promise<void> {
     );
   }
 
-  // Cut the buried part of the wood.
-  const wood: number[] = [];
-  for (let t = 0; t < soup.wood.length; t += 9) {
-    const centreY = (soup.wood[t + 1]! + soup.wood[t + 4]! + soup.wood[t + 7]!) / 3;
-    if (centreY < groundY) continue;
-    for (let k = 0; k < 9; k++) wood.push(soup.wood[t + k]!);
-  }
+  // Cut the buried part of the wood with a clean, flat plane.
+  const wood = clipAbove(soup.wood, groundY);
   if (wood.length / 9 > MAX_WOOD_TRIANGLES) {
     throw new Error(
       `${wood.length / 9} wood triangles is too many; the limit is ${MAX_WOOD_TRIANGLES}.`,
