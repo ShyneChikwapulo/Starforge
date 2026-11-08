@@ -1,4 +1,3 @@
-import { Simulation } from '@starforge/core';
 import { createSampleMetrics, type Metrics } from '@starforge/github-data';
 import { describe, expect, it } from 'vitest';
 import { buildGalaxy } from './galaxy';
@@ -82,19 +81,31 @@ describe('buildTree', () => {
     for (const root of roots) expect(state.target[root.particle * 3 + 1]).toBeLessThan(-10);
   });
 
-  it('keeps the wood perfectly still while the foliage shimmers', () => {
-    const { state, behaviours, seed } = buildTree(sample, { particleCount: 4000 });
-    const sim = new Simulation({ state, behaviours, seed });
-    sim.run(30);
-    let still = 0;
-    let moved = 0;
-    for (let i = 0; i < state.count; i++) {
-      const home = [0, 1, 2].every((k) => state.position[i * 3 + k] === state.target[i * 3 + k]);
-      if (home) still++;
-      else moved++;
+  it('returns the wood as a solid mesh that stands between the roots and the crown', () => {
+    const { mesh } = buildTree(sample);
+    expect(mesh).toBeDefined();
+    const { positions, normals, colors, indices } = mesh!;
+    expect(normals.length).toBe(positions.length);
+    expect(colors.length).toBe(positions.length);
+    expect(indices.length % 3).toBe(0);
+    let top = 0;
+    for (const vertex of indices) if (vertex > top) top = vertex;
+    expect(top).toBeLessThan(positions.length / 3);
+    let low = Infinity;
+    let high = -Infinity;
+    for (let i = 1; i < positions.length; i += 3) {
+      low = Math.min(low, positions[i]);
+      high = Math.max(high, positions[i]);
     }
-    expect(still).toBeGreaterThan(state.count * 0.3);
-    expect(moved).toBeGreaterThan(state.count * 0.3);
+    expect(low).toBeGreaterThan(-11);
+    expect(high).toBeLessThan(11);
+    expect(Array.from(colors).every((c) => c >= 0 && c <= 1)).toBe(true);
+  });
+
+  it('keeps the wood the same whatever the particle budget', () => {
+    const small = buildTree(sample, { particleCount: 2000 }).mesh!;
+    const large = buildTree(sample).mesh!;
+    expect(small.positions).toEqual(large.positions);
   });
 
   it('colours fresh twigs greener than old ones', () => {

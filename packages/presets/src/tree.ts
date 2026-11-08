@@ -2,23 +2,23 @@ import {
   createParticleState,
   createRng,
   drag,
+  jitter,
   scatterInBox,
   spring,
   type ParticleState,
+  type SolidMesh,
 } from '@starforge/core';
 import type { Metrics } from '@starforge/github-data';
 import { dayEntity, repositoryEntity } from './entities';
 import { hexToRgb, logScale, scaleColor, type Rgb } from './scale';
-import { getSilhouette } from './tree-silhouette';
+import { getSilhouette, type SilhouetteMesh } from './tree-silhouette';
 import type { Entity, Preset, PresetOptions, PresetResult } from './types';
-
-type Behaviour = PresetResult['behaviours'][number];
 
 /** World height of the tree and where its base sits; the baked silhouette is 1 tall. */
 const SCALE = 20;
 const BASE_Y = -10;
 /** Rough horizontal reach of the crown, used to light its rim brighter than its core. */
-const CROWN_RADIUS = SCALE * 0.65;
+const CROWN_RADIUS = SCALE * 0.68;
 const MAX_REPOS = 100;
 const MAX_LEAVES = 3000;
 const DEFAULT_PARTICLES = 16000;
@@ -26,33 +26,15 @@ const GOLDEN_ANGLE = 2.399963229728653;
 const TAU = Math.PI * 2;
 const FALLBACK_COLOR = '#8b949e';
 
-/**
- * Shares of the non-data (dust) particles. The wood gets a big share because it has to read as
- * solid; the foliage haze takes whatever is left.
- */
-const TRUNK_SHARE = 0.22;
-const BRANCH_SHARE = 0.28;
-/**
- * Wood sprites overlap and their light adds up, so each point's colour is scaled down by
- * WOOD_GAIN to land on a natural brightness once the overlaps are summed.
- */
-const WOOD_GAIN = 0.3;
-const TRUNK_SIZE = 1.5;
-const BRANCH_SIZE = 0.9;
-/** A thinned-out wood set grows its sprites by this much at most to keep the surface covered. */
-const MAX_WOOD_GROWTH = 2.2;
-/** One fixed light, from above and to the left, so the wood reads as lit from one side. */
-const LIGHT = (() => {
-  const x = -0.45;
-  const y = 0.75;
-  const z = 0.5;
-  const length = Math.hypot(x, y, z);
-  return { x: x / length, y: y / length, z: z / length };
-})();
 /** How far a busy day's glow reaches into the surrounding foliage, in world units. */
 const GLOW_RADIUS = 3;
 /** Day tips avoid the inner crown: they keep points beyond this share of the local reach. */
 const SHELL = 0.7;
+/**
+ * The foliage haze is tuned for about this many particles. A bigger haze dims each particle in
+ * proportion, so the crown gets smoother instead of blowing out.
+ */
+const HAZE_REFERENCE = 6000;
 
 /**
  * Recency ramp, 0 = oldest, 1 = newest: amber gold, lime, emerald, then a bright mint green.
@@ -65,11 +47,7 @@ const RAMP: [number, Rgb][] = [
   [1, [0.45, 1, 0.55]],
 ];
 const FOLIAGE: Rgb = [0.12, 0.68, 0.34];
-/** Wood is a warm copper where the light hits it and a cool dark teal in shadow. */
-const LIT: Rgb = [0.85, 0.55, 0.32];
-const SHADE: Rgb = [0.16, 0.2, 0.26];
-/** Bright green sap that twists up the trunk. */
-const SAP: Rgb = [0.45, 1, 0.55];
+const BARK: Rgb = [0.6, 0.42, 0.27];
 
 interface Point {
   x: number;
@@ -169,9 +147,40 @@ function bakedPoint(points: Float32Array, j: number, rng: () => number): Point {
   };
 }
 
+/** A small integer hash, so bark colours are the same on every platform. */
+function hash3(x: number, y: number, z: number): number {
+  let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(z | 0, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1103515245);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/**
+ * The baked wood in world units, with a bark colour per vertex: warm brown, darker near the
+ * ground, with a little hashed variation so the surface is not flat.
+ */
+function worldMesh(source: SilhouetteMesh): SolidMesh {
+  const vertices = source.positions.length / 3;
+  const positions = new Float32Array(source.positions.length);
+  const colors = new Float32Array(source.positions.length);
+  for (let v = 0; v < vertices; v++) {
+    const x = source.positions[v * 3];
+    const y = source.positions[v * 3 + 1];
+    const z = source.positions[v * 3 + 2];
+    positions[v * 3] = x * SCALE;
+    positions[v * 3 + 1] = BASE_Y + y * SCALE;
+    positions[v * 3 + 2] = z * SCALE;
+    const grain = hash3(Math.round(x * 4000), Math.round(y * 4000), Math.round(z * 4000));
+    const tone = (0.7 + 0.35 * Math.min(1, Math.max(0, y))) * (0.88 + 0.24 * grain);
+    colors[v * 3] = BARK[0] * tone;
+    colors[v * 3 + 1] = BARK[1] * tone;
+    colors[v * 3 + 2] = BARK[2] * tone;
+  }
+  return { positions, normals: source.normals, colors, indices: source.indices };
+}
+
 /**
  * Leaf points on the outer part of the crown, lowest first. "Outer" is relative to how far the
- * crown reaches at that height, so the trunk's fork and the tapering top are treated alike.
+ * crown reaches at that height, so the lower and upper parts of the crown are treated alike.
  */
 function crownShell(leaves: Float32Array): Point[] {
   const bands = 24;
@@ -232,19 +241,6 @@ function placeAnchors(pool: Point[], months: Month[], total: number): Point[] {
   return anchors;
 }
 
-/** Like `jitter`, but it leaves one range of particles (the solid wood) perfectly still. */
-function foliageJitter(strength: number, still: { from: number; to: number }): Behaviour {
-  return (state, { dt, rng }) => {
-    const { velocity } = state;
-    const low = still.from * 3;
-    const high = still.to * 3;
-    for (let i = 0; i < velocity.length; i++) {
-      if (i >= low && i < high) continue;
-      velocity[i] += (rng() * 2 - 1) * strength * dt;
-    }
-  };
-}
-
 /**
  * Data encodings:
  * - the crown climbs through time: one ring per calendar month, oldest lowest, days sweeping
@@ -255,9 +251,10 @@ function foliageJitter(strength: number, still: { from: number; to: number }): B
  *   brighter green, older ones fade to gold. If there are more contributions than the leaf
  *   budget, leaf counts are scaled down proportionally
  * - roots are repositories, sized by stars
- * - the trunk and branches are the baked model's own, and the soft foliage haze is the baked
- *   crown itself, tinted by the nearest day, brighter on the rim and glowing near busy days:
- *   decoration that follows activity, not a count
+ * - the trunk and branches are the baked model's own, returned as a solid mesh that the renderer
+ *   draws crisp and lit, outside the glow. Everything that is a particle is foliage
+ * - the soft foliage haze is the baked crown itself, tinted by the nearest day, brighter on the
+ *   rim and glowing near busy days: decoration that follows activity, not a count
  *
  * It returns the same particle count as the other presets for the same input, so a viewer can
  * morph between them.
@@ -356,73 +353,10 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
     }
   });
 
-  // Wood: the model's own trunk and branches, lit by one fixed light so it reads as solid. The
-  // sprites are big enough to overlap into a continuous surface, and the trunk carries twisting
-  // strands of bright sap.
-  const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
-  const smoothstep = (from: number, to: number, value: number): number => {
-    const t = clamp01((value - from) / (to - from));
-    return t * t * (3 - 2 * t);
-  };
-  const woodStart = index;
-  const wood = (
-    points: Float32Array,
-    normals: Float32Array,
-    budget: number,
-    size: number,
-    trunk: boolean,
-  ): void => {
-    const baked = points.length / 3;
-    const used = Math.min(baked, budget);
-    // A prefix of the baked points is an evenly thinned set, so fewer points get bigger sprites.
-    const grow = Math.min(MAX_WOOD_GROWTH, Math.sqrt(baked / Math.max(1, used)));
-    for (let j = 0; j < used; j++) {
-      const p = bakedPoint(points, j, rng);
-      const facing = clamp01(
-        0.5 +
-          0.5 *
-            (normals[j * 3] * LIGHT.x +
-              normals[j * 3 + 1] * LIGHT.y +
-              normals[j * 3 + 2] * LIGHT.z),
-      );
-      let color = lerp(SHADE, LIT, facing ** 1.5);
-      let gain = WOOD_GAIN * (0.85 + 0.3 * rng());
-      if (trunk) {
-        const grain = Math.sin(Math.atan2(p.z, p.x) * 7 + (p.y - BASE_Y) * 1.3);
-        const sap = smoothstep(0.88, 1, grain);
-        color = lerp(color, SAP, 0.85 * sap);
-        gain *= 0.85 + 0.15 * grain + 1.4 * sap;
-      }
-      put(
-        state,
-        index++,
-        p.x,
-        p.y,
-        p.z,
-        scaleColor(color, Math.min(1, gain)),
-        size * grow * (0.85 + 0.3 * rng()),
-      );
-    }
-  };
-  wood(
-    silhouette.trunk,
-    silhouette.trunkNormals,
-    Math.floor(dustCount * TRUNK_SHARE),
-    TRUNK_SIZE,
-    true,
-  );
-  wood(
-    silhouette.branches,
-    silhouette.branchNormals,
-    Math.floor(dustCount * BRANCH_SHARE),
-    BRANCH_SIZE,
-    false,
-  );
-  const woodEnd = index;
-
   // Foliage haze: the baked crown. It fills the rest of the budget, so the whole outline is
   // always there, and each point takes its colour and glow from the nearest day.
   const hazeCount = state.count - index;
+  const hazeGain = Math.min(1, Math.max(0.25, HAZE_REFERENCE / Math.max(1, hazeCount)));
   for (let h = 0; h < hazeCount; h++) {
     const p = bakedPoint(silhouette.leaves, h, rng);
     if (calendar.length === 0) {
@@ -451,7 +385,7 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
       p.x,
       p.y,
       p.z,
-      scaleColor(recencyColor(dayTime(best)), Math.min(1, body + 0.35 * glow)),
+      scaleColor(recencyColor(dayTime(best)), Math.min(1, (body + 0.35 * glow) * hazeGain)),
       0.45 + 0.45 * rng() + 0.25 * glow,
     );
   }
@@ -466,9 +400,10 @@ export function buildTree(metrics: Metrics, options: PresetOptions = {}): Preset
     state,
     seed,
     entities,
+    mesh: worldMesh(silhouette.mesh),
     behaviours: [
       spring({ stiffness: 6, damping: 4 }),
-      foliageJitter(0.55, { from: woodStart, to: woodEnd }),
+      jitter({ strength: 0.55 }),
       drag({ coefficient: 0.2 }),
     ],
   };
