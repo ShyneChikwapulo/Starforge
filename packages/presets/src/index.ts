@@ -4,3 +4,4 @@ export * from './galaxy';
 export * from './tunnel';
 export * from './registry';
 export * from './tree';
+export * from './atom';
