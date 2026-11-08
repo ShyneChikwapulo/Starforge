@@ -450,6 +450,10 @@ export function buildAtom(metrics: Metrics, options: PresetOptions = {}): Preset
         getLanguageIcon(language.name),
         hexToRgb(language.color, FALLBACK_COLOR),
       ),
+      label: {
+        title: language.name,
+        detail: `${(language.share * 100).toFixed(language.share < 0.1 ? 1 : 0)}% of your code`,
+      },
       pose: (turns) => {
         const [x, y, z] = ringPoint(ring, phase + TAU * ring.revolutions * turns);
         return { x, y, z, spin: Math.PI - VIEW_YAW - TAU * turns + tilt };

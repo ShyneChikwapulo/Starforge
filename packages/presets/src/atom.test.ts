@@ -107,3 +107,12 @@ describe('buildAtom', () => {
     expect(a.state.target).toEqual(b.state.target);
   });
 });
+
+describe('buildAtom labels', () => {
+  it('labels each ball with its language and its share of your code', () => {
+    for (const body of buildAtom(sample).bodies!) {
+      expect(body.label?.title).toBeTruthy();
+      expect(body.label?.detail).toMatch(/^\d+(\.\d)?% of your code$/);
+    }
+  });
+});
