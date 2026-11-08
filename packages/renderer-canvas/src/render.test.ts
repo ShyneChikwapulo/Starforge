@@ -1,4 +1,4 @@
-import { createParticleState, type ParticleState } from '@starforge/core';
+import { createParticleState, type ParticleState, type SolidMesh } from '@starforge/core';
 import { describe, expect, it } from 'vitest';
 import { orbitCamera, renderFrame, type Camera, type Frame } from './render';
 
@@ -92,5 +92,50 @@ describe('orbitCamera', () => {
     expect(orbitCamera(CAMERA, 1).yaw).toBeCloseTo(Math.PI * 2);
     expect(orbitCamera(CAMERA, 0.25).yaw).toBeCloseTo(Math.PI / 2);
     expect(orbitCamera(CAMERA, 1).distance).toBe(CAMERA.distance);
+  });
+});
+
+describe('renderFrame with a solid mesh', () => {
+  const triangle: SolidMesh = {
+    positions: new Float32Array([-3, -3, 0, 3, -3, 0, 0, 3, 0]),
+    normals: new Float32Array([0, 0, -1, 0, 0, -1, 0, 0, -1]),
+    colors: new Float32Array([1, 0, 0, 1, 0, 0, 1, 0, 0]),
+    indices: new Uint32Array([0, 1, 2]),
+  };
+  const options = {
+    width: W,
+    height: H,
+    camera: CAMERA,
+    background: [0, 0, 0] as [number, number, number],
+    mesh: triangle,
+  };
+  const pixelAt = (frame: Frame, x: number, y: number) => {
+    const o = (y * frame.width + x) * 4;
+    return Array.from(frame.data.subarray(o, o + 4));
+  };
+
+  it('draws a lit, opaque triangle over the background', () => {
+    const frame = renderFrame(createParticleState(0), options);
+    const [r, g, , a] = pixelAt(frame, W / 2, H / 2);
+    expect(r).toBeGreaterThan(80);
+    expect(g).toBe(0);
+    expect(a).toBe(255);
+    expect(pixelAt(frame, 2, 2)).toEqual([0, 0, 0, 255]);
+  });
+
+  it('hides particles behind the mesh and keeps the ones in front', () => {
+    const base = pixelAt(renderFrame(createParticleState(0), options), W / 2, H / 2);
+    const behind = particles({ at: [0, 0, 2], size: 5, rgb: 1 });
+    const front = particles({ at: [0, 0, -2], size: 5, rgb: 1 });
+    expect(pixelAt(renderFrame(behind, options), W / 2, H / 2)).toEqual(base);
+    expect(pixelAt(renderFrame(front, options), W / 2, H / 2)[1]).toBeGreaterThan(0);
+  });
+
+  it('keeps the mesh on a transparent background', () => {
+    const frame = renderFrame(createParticleState(0), { ...options, background: null });
+    const [r, , , a] = pixelAt(frame, W / 2, H / 2);
+    expect(a).toBe(255);
+    expect(r).toBeGreaterThan(80);
+    expect(pixelAt(frame, 2, 2)[3]).toBe(0);
   });
 });

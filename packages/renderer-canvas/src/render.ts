@@ -1,5 +1,6 @@
-import type { ParticleState } from '@starforge/core';
+import type { ParticleState, SolidMesh } from '@starforge/core';
 import { applyBloom, type BloomOptions } from './bloom';
+import { rasterizeMesh } from './mesh';
 
 export interface Camera {
   /** Rotation around the vertical axis, radians. A full 2π turn returns to the start. */
@@ -24,6 +25,11 @@ export interface RenderOptions {
   exposure?: number;
   /** Glow around bright particles. Off when omitted. */
   bloom?: BloomOptions;
+  /**
+   * Solid geometry, drawn as lit, depth-tested triangles. It is not part of the bloom, particles
+   * behind it are hidden, and particles in front of it still glow over it.
+   */
+  mesh?: SolidMesh;
 }
 
 export interface Frame {
@@ -68,6 +74,7 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
   const centerX = width / 2;
   const centerY = height / 2;
   const { position, color, size } = state;
+  const solid = options.mesh ? rasterizeMesh(options.mesh, camera, width, height) : null;
 
   for (let p = 0; p < state.count; p++) {
     const i = p * 3;
@@ -108,7 +115,11 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
         const dx = px + 0.5 - screenX;
         const t = (dx * dx + dy * dy) * invReach2;
         if (t >= 1) continue;
-        const weight = (1 - t) * (1 - t);
+        let weight = (1 - t) * (1 - t);
+        if (solid) {
+          const pixel = py * width + px;
+          if (depth > solid.depth[pixel]) weight *= 1 - solid.coverage[pixel];
+        }
         const k = (py * width + px) * 3;
         accum[k] += red * weight;
         accum[k + 1] += green * weight;
@@ -127,17 +138,25 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
     const g = tone(accum[k + 1] * exposure);
     const b = tone(accum[k + 2] * exposure);
 
+    // The mesh is the base the glow is added to; it never goes through the bloom.
+    const cover = solid ? solid.coverage[pixel] : 0;
+    const meshR = solid ? solid.color[k] * cover : 0;
+    const meshG = solid ? solid.color[k + 1] * cover : 0;
+    const meshB = solid ? solid.color[k + 2] * cover : 0;
     if (background) {
-      data[o] = (background[0] + r * (1 - background[0])) * 255;
-      data[o + 1] = (background[1] + g * (1 - background[1])) * 255;
-      data[o + 2] = (background[2] + b * (1 - background[2])) * 255;
+      const baseR = background[0] * (1 - cover) + meshR;
+      const baseG = background[1] * (1 - cover) + meshG;
+      const baseB = background[2] * (1 - cover) + meshB;
+      data[o] = (baseR + r * (1 - baseR)) * 255;
+      data[o + 1] = (baseG + g * (1 - baseG)) * 255;
+      data[o + 2] = (baseB + b * (1 - baseB)) * 255;
       data[o + 3] = 255;
     } else {
-      const alpha = Math.max(r, g, b);
+      const alpha = cover + Math.max(r, g, b) * (1 - cover);
       if (alpha > 0) {
-        data[o] = (r / alpha) * 255;
-        data[o + 1] = (g / alpha) * 255;
-        data[o + 2] = (b / alpha) * 255;
+        data[o] = Math.min(1, (meshR + r) / alpha) * 255;
+        data[o + 1] = Math.min(1, (meshG + g) / alpha) * 255;
+        data[o + 2] = Math.min(1, (meshB + b) / alpha) * 255;
         data[o + 3] = alpha * 255;
       }
     }
