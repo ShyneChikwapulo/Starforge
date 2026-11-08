@@ -47,6 +47,7 @@ async function main(): Promise<void> {
     const first = getPreset(current)!.build(metrics, buildOptions);
     const { state, behaviours, seed } = first;
     let entities = first.entities;
+    let bodies = first.bodies ?? [];
 
     const simulation = new Simulation({ state, behaviours, seed });
     simulation.run(60);
@@ -59,13 +60,15 @@ async function main(): Promise<void> {
     });
     viewer.setParticles(state);
     viewer.setMesh(first.mesh ?? null);
+    viewer.setBodies(first.bodies ?? null);
     viewer.setView(presets[current].view);
     viewer.onFrame(() => simulation.step());
 
     const tooltip = createTooltip(marker, tip);
     viewer.setHoverTargets(entities.map((entity) => entity.particle));
     viewer.onHover((hit) => {
-      if (hit) tooltip.show(entities[hit.index], hit.x, hit.y);
+      const target = hit && (hit.body ? bodies[hit.index]?.label : entities[hit.index]);
+      if (hit && target) tooltip.show(target, hit.x, hit.y);
       else tooltip.hide();
     });
 
@@ -86,9 +89,11 @@ async function main(): Promise<void> {
       state.size.set(next.state.size);
       viewer.invalidateAppearance();
       viewer.setMesh(next.mesh ?? null);
+      viewer.setBodies(next.bodies ?? null);
       viewer.setView(presets[id].view);
 
       entities = next.entities;
+      bodies = next.bodies ?? [];
       viewer.setHoverTargets(entities.map((entity) => entity.particle));
       tooltip.hide();
 
