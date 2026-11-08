@@ -34,6 +34,20 @@ describe('getSilhouette', () => {
     expect(reach(leaves)).toBeGreaterThan(reach(trunk));
   });
 
+  it('carries a unit normal for every wood point', () => {
+    const { trunk, branches, trunkNormals, branchNormals } = getSilhouette();
+    expect(trunkNormals.length).toBe(trunk.length);
+    expect(branchNormals.length).toBe(branches.length);
+    for (const normals of [trunkNormals, branchNormals]) {
+      let unit = 0;
+      for (let i = 0; i < normals.length; i += 3) {
+        const length = Math.hypot(normals[i], normals[i + 1], normals[i + 2]);
+        if (Math.abs(length - 1) < 0.05) unit++;
+      }
+      expect(unit / (normals.length / 3)).toBeGreaterThan(0.98);
+    }
+  });
+
   it('decodes once and shares the result', () => {
     expect(getSilhouette()).toBe(getSilhouette());
   });
