@@ -136,7 +136,11 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
   const data = new Uint8ClampedArray(width * height * 4);
   for (let pixel = 0; pixel < width * height; pixel++) {
     const k = pixel * 3;
-    const o = pixel * 4;
+    // The camera looks along +z, which would mirror a right-handed scene, so each row is
+    // written back to front. The result matches the web viewer, where logos and text read
+    // the right way round.
+    const column = pixel % width;
+    const o = (pixel - column + (width - 1 - column)) * 4;
     const r = tone(accum[k] * exposure);
     const g = tone(accum[k + 1] * exposure);
     const b = tone(accum[k + 2] * exposure);

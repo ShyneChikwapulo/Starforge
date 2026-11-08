@@ -50,10 +50,10 @@ describe('renderFrame', () => {
     expect(Math.abs(peak.y - H / 2)).toBeLessThanOrEqual(1);
   });
 
-  it('places +x on the right, and swaps sides after half an orbit', () => {
+  it('looks from behind at yaw 0, so +x is on the left, and on the right after half an orbit', () => {
     const state = particles({ at: [5, 0, 0] });
-    expect(brightest(render(state)).x).toBeGreaterThan(W / 2);
-    expect(brightest(render(state, { ...CAMERA, yaw: Math.PI })).x).toBeLessThan(W / 2);
+    expect(brightest(render(state)).x).toBeLessThan(W / 2);
+    expect(brightest(render(state, { ...CAMERA, yaw: Math.PI })).x).toBeGreaterThan(W / 2);
   });
 
   it('places +y above the centre', () => {
