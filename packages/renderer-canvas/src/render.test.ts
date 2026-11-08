@@ -139,3 +139,44 @@ describe('renderFrame with a solid mesh', () => {
     expect(pixelAt(frame, 2, 2)[3]).toBe(0);
   });
 });
+
+describe('renderFrame with moving bodies', () => {
+  const triangle = (rgb: [number, number, number]): SolidMesh => ({
+    positions: new Float32Array([-3, -3, 0, 3, -3, 0, 0, 3, 0]),
+    normals: new Float32Array([0, 0, -1, 0, 0, -1, 0, 0, -1]),
+    colors: new Float32Array([...rgb, ...rgb, ...rgb]),
+    indices: new Uint32Array([0, 1, 2]),
+  });
+  const base = {
+    width: W,
+    height: H,
+    camera: CAMERA,
+    background: [0, 0, 0] as [number, number, number],
+  };
+  const pixelAt = (frame: Frame, x: number, y: number) => {
+    const o = (y * frame.width + x) * 4;
+    return Array.from(frame.data.subarray(o, o + 4));
+  };
+
+  it('draws a body where its pose puts it', () => {
+    const body = (x: number) => ({
+      mesh: triangle([1, 0, 0]),
+      pose: { x, y: 0, z: 0, spin: 0 },
+    });
+    const here = renderFrame(createParticleState(0), { ...base, bodies: [body(0)] });
+    const away = renderFrame(createParticleState(0), { ...base, bodies: [body(50)] });
+    expect(pixelAt(here, W / 2, H / 2)[0]).toBeGreaterThan(80);
+    expect(pixelAt(away, W / 2, H / 2)).toEqual([0, 0, 0, 255]);
+  });
+
+  it('shares one depth buffer between the bodies and the static mesh', () => {
+    const frame = renderFrame(createParticleState(0), {
+      ...base,
+      mesh: triangle([1, 0, 0]),
+      bodies: [{ mesh: triangle([0, 1, 0]), pose: { x: 0, y: 0, z: 2, spin: 0 } }],
+    });
+    const [r, g] = pixelAt(frame, W / 2, H / 2);
+    expect(r).toBeGreaterThan(80);
+    expect(g).toBe(0);
+  });
+});

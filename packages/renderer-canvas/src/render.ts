@@ -1,6 +1,6 @@
 import type { ParticleState, SolidMesh } from '@starforge/core';
 import { applyBloom, type BloomOptions } from './bloom';
-import { rasterizeMesh } from './mesh';
+import { rasterizeSolids, type PlacedMesh } from './mesh';
 
 export interface Camera {
   /** Rotation around the vertical axis, radians. A full 2π turn returns to the start. */
@@ -30,6 +30,8 @@ export interface RenderOptions {
    * behind it are hidden, and particles in front of it still glow over it.
    */
   mesh?: SolidMesh;
+  /** More solid geometry, each mesh placed by a pose. It is drawn together with `mesh`. */
+  bodies?: PlacedMesh[];
 }
 
 export interface Frame {
@@ -74,7 +76,8 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
   const centerX = width / 2;
   const centerY = height / 2;
   const { position, color, size } = state;
-  const solid = options.mesh ? rasterizeMesh(options.mesh, camera, width, height) : null;
+  const solids = [...(options.mesh ? [{ mesh: options.mesh }] : []), ...(options.bodies ?? [])];
+  const solid = solids.length > 0 ? rasterizeSolids(solids, camera, width, height) : null;
 
   for (let p = 0; p < state.count; p++) {
     const i = p * 3;
