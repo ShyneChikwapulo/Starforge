@@ -47,7 +47,7 @@ const RAMP: [number, Rgb][] = [
   [1, [0.45, 1, 0.55]],
 ];
 const FOLIAGE: Rgb = [0.12, 0.68, 0.34];
-const BARK: Rgb = [0.6, 0.42, 0.27];
+const BARK: Rgb = [0.5, 0.34, 0.22];
 
 interface Point {
   x: number;
@@ -170,7 +170,7 @@ function worldMesh(source: SilhouetteMesh): SolidMesh {
     positions[v * 3 + 1] = BASE_Y + y * SCALE;
     positions[v * 3 + 2] = z * SCALE;
     const grain = hash3(Math.round(x * 4000), Math.round(y * 4000), Math.round(z * 4000));
-    const tone = (0.7 + 0.35 * Math.min(1, Math.max(0, y))) * (0.88 + 0.24 * grain);
+    const tone = (0.7 + 0.35 * Math.min(1, Math.max(0, y))) * (0.8 + 0.4 * grain);
     colors[v * 3] = BARK[0] * tone;
     colors[v * 3 + 1] = BARK[1] * tone;
     colors[v * 3 + 2] = BARK[2] * tone;
@@ -416,7 +416,7 @@ export const treePreset: Preset = {
     'The crown climbs through time, one ring per month, oldest at the bottom · each bright tip is a day, dim when quiet · each glowing leaf is a contribution, fresher leaves are brighter green and older ones fade to gold (scaled down only for very busy years) · roots are repositories, sized by stars · the soft foliage haze is decoration that follows activity',
   caption:
     'Height: time, a ring per month · Tips: days · Leaves: contributions · Roots: repositories',
-  view: { yaw: 0.4, pitch: 0.12, distance: 36, fov: Math.PI / 4 },
+  view: { yaw: 0.4, pitch: 0.12, distance: 44, fov: Math.PI / 4 },
   size: { width: 720, height: 720 },
   build: buildTree,
 };
