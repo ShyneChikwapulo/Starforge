@@ -3,3 +3,4 @@ export * from './state';
 export * from './behaviours';
 export * from './simulation';
 export * from './loop';
+export * from './mesh';
