@@ -1,8 +1,14 @@
 import { z } from 'zod';
 import type { GraphQLClient } from './client';
 import { addDays, isoDay } from './dates';
-import { REPOS_QUERY, USER_QUERY } from './queries';
-import type { Community, Highlights, Metrics, PullRequestStats } from './schema';
+import {
+  COMMUNITY_QUERY,
+  HIGHLIGHTS_QUERY,
+  PULL_REQUEST_STATS_QUERY,
+  REPOS_QUERY,
+  USER_QUERY,
+} from './queries';
+import type { Community, Highlights, Metrics, NotableRepository, PullRequestStats } from './schema';
 import { SCHEMA_VERSION, parseMetrics } from './schema';
 
 const totalCount = z.object({ totalCount: z.number() });
@@ -73,6 +79,64 @@ const RawReposResponse = z.object({
       }),
     })
     .nullable(),
+});
+
+const RawPullRequestStatsResponse = z.object({
+  opened: z.object({ issueCount: z.number() }),
+  merged: z.object({ issueCount: z.number() }),
+  user: z.object({ pullRequests: totalCount }).nullable(),
+});
+
+const RawCommunityResponse = z.object({
+  user: z
+    .object({
+      asSponsor: totalCount,
+      asMaintainer: totalCount,
+      repositoryDiscussions: totalCount,
+      repositoryDiscussionComments: totalCount,
+    })
+    .nullable(),
+});
+
+const RawHighlightsResponse = z.object({
+  user: z
+    .object({
+      pinnedItems: z.object({
+        // Non-repository nodes arrive as empty objects, so every field is optional here.
+        nodes: z
+          .array(
+            z
+              .object({
+                nameWithOwner: z.string().optional(),
+                url: z.string().optional(),
+                description: z.string().nullable().optional(),
+                stargazerCount: z.number().optional(),
+                primaryLanguage: z.object({ name: z.string() }).nullable().optional(),
+              })
+              .nullable(),
+          )
+          .nullable(),
+      }),
+    })
+    .nullable(),
+  search: z.object({
+    issueCount: z.number(),
+    nodes: z
+      .array(
+        z
+          .object({
+            repository: z
+              .object({
+                nameWithOwner: z.string(),
+                url: z.string(),
+                stargazerCount: z.number(),
+              })
+              .optional(),
+          })
+          .nullable(),
+      )
+      .nullable(),
+  }),
 });
 
 export type RawUser = NonNullable<z.infer<typeof RawUserResponse>['user']>;
@@ -191,6 +255,76 @@ export function buildMetrics(input: BuildInput): Metrics {
   });
 }
 
+function buildPullRequestStats(raw: z.infer<typeof RawPullRequestStatsResponse>): PullRequestStats {
+  return {
+    opened: raw.opened.issueCount,
+    merged: raw.merged.issueCount,
+    mergedAllTime: raw.user?.pullRequests.totalCount ?? 0,
+  };
+}
+
+function buildCommunity(raw: z.infer<typeof RawCommunityResponse>): Community {
+  const user = raw.user;
+  return {
+    sponsoring: user?.asSponsor.totalCount ?? 0,
+    sponsors: user?.asMaintainer.totalCount ?? 0,
+    discussionsStarted: user?.repositoryDiscussions.totalCount ?? 0,
+    discussionsAnswered: user?.repositoryDiscussionComments.totalCount ?? 0,
+  };
+}
+
+function buildHighlights(raw: z.infer<typeof RawHighlightsResponse>): Highlights {
+  const pinned = (raw.user?.pinnedItems.nodes ?? []).flatMap((node) =>
+    node && node.nameWithOwner !== undefined && node.url !== undefined
+      ? [
+          {
+            nameWithOwner: node.nameWithOwner,
+            url: node.url,
+            description: node.description ?? null,
+            stars: node.stargazerCount ?? 0,
+            primaryLanguage: node.primaryLanguage?.name ?? null,
+          },
+        ]
+      : [],
+  );
+
+  const byRepository = new Map<string, NotableRepository>();
+  for (const node of raw.search.nodes ?? []) {
+    const repository = node?.repository;
+    if (!repository) continue;
+    const entry = byRepository.get(repository.nameWithOwner);
+    if (entry) {
+      entry.mergedPullRequests += 1;
+    } else {
+      byRepository.set(repository.nameWithOwner, {
+        nameWithOwner: repository.nameWithOwner,
+        url: repository.url,
+        stars: repository.stargazerCount,
+        mergedPullRequests: 1,
+      });
+    }
+  }
+  const repositories = [...byRepository.values()]
+    .sort((a, b) => b.stars - a.stars || a.nameWithOwner.localeCompare(b.nameWithOwner))
+    .slice(0, 10);
+
+  return { pinned, notable: { mergedPullRequests: raw.search.issueCount, repositories } };
+}
+
+/** Run one optional collection step. A failure becomes a warning and a null section, never a crash. */
+async function optional<T>(
+  label: string,
+  warn: (message: string) => void,
+  run: () => Promise<T>,
+): Promise<T | null> {
+  try {
+    return await run();
+  } catch (error) {
+    warn(`Skipped ${label}: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
+}
+
 export interface CollectOptions {
   login: string;
   client: GraphQLClient;
@@ -198,6 +332,8 @@ export interface CollectOptions {
   now?: Date;
   /** Safety cap on repositories fetched (default 500). Star and fork totals cover fetched repos. */
   maxRepositories?: number;
+  /** Receives a message when an optional section is skipped. Defaults to console.warn. */
+  onWarning?: (message: string) => void;
 }
 
 /** Fetch a user's public GitHub data and return validated Starforge metrics. */
@@ -205,6 +341,7 @@ export async function collectMetrics(options: CollectOptions): Promise<Metrics> 
   const { login, client } = options;
   const now = options.now ?? new Date();
   const maxRepositories = options.maxRepositories ?? 500;
+  const warn = options.onWarning ?? ((message: string) => console.warn(message));
   const to = isoDay(now);
   const from = addDays(to, -364);
 
@@ -228,6 +365,39 @@ export async function collectMetrics(options: CollectOptions): Promise<Metrics> 
     after = connection.pageInfo.endCursor;
   }
 
+  // The login ends up inside a search query, so only a plain GitHub login may be used there.
+  const searchable = /^[A-Za-z0-9-]+$/.test(login);
+  const requireSearchable = (): void => {
+    if (!searchable) throw new Error(`"${login}" is not a plain GitHub login`);
+  };
+
+  const [pullRequestStats, community, highlights] = await Promise.all([
+    optional('pull request stats', warn, async () => {
+      requireSearchable();
+      const raw = RawPullRequestStatsResponse.parse(
+        await client(PULL_REQUEST_STATS_QUERY, {
+          login,
+          opened: `author:${login} is:pr created:${from}..${to}`,
+          merged: `author:${login} is:pr is:merged created:${from}..${to}`,
+        }),
+      );
+      return buildPullRequestStats(raw);
+    }),
+    optional('community stats', warn, async () =>
+      buildCommunity(RawCommunityResponse.parse(await client(COMMUNITY_QUERY, { login }))),
+    ),
+    optional('highlights', warn, async () => {
+      requireSearchable();
+      const raw = RawHighlightsResponse.parse(
+        await client(HIGHLIGHTS_QUERY, {
+          login,
+          merged: `author:${login} is:pr is:merged -user:${login} sort:updated-desc`,
+        }),
+      );
+      return buildHighlights(raw);
+    }),
+  ]);
+
   return buildMetrics({
     user: userData.user,
     repos: repos.slice(0, maxRepositories),
@@ -235,5 +405,8 @@ export async function collectMetrics(options: CollectOptions): Promise<Metrics> 
     now,
     from,
     to,
+    pullRequestStats,
+    community,
+    highlights,
   });
 }
