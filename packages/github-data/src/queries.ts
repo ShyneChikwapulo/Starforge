@@ -78,3 +78,70 @@ export const REPOS_QUERY = /* GraphQL */ `
     }
   }
 `;
+
+export const PULL_REQUEST_STATS_QUERY = /* GraphQL */ `
+  query StarforgePullRequestStats($login: String!, $opened: String!, $merged: String!) {
+    opened: search(query: $opened, type: ISSUE, first: 1) {
+      issueCount
+    }
+    merged: search(query: $merged, type: ISSUE, first: 1) {
+      issueCount
+    }
+    user(login: $login) {
+      pullRequests(states: MERGED) {
+        totalCount
+      }
+    }
+  }
+`;
+
+export const COMMUNITY_QUERY = /* GraphQL */ `
+  query StarforgeCommunity($login: String!) {
+    user(login: $login) {
+      asSponsor: sponsorshipsAsSponsor {
+        totalCount
+      }
+      asMaintainer: sponsorshipsAsMaintainer {
+        totalCount
+      }
+      repositoryDiscussions {
+        totalCount
+      }
+      repositoryDiscussionComments(onlyAnswers: true) {
+        totalCount
+      }
+    }
+  }
+`;
+
+export const HIGHLIGHTS_QUERY = /* GraphQL */ `
+  query StarforgeHighlights($login: String!, $merged: String!) {
+    user(login: $login) {
+      pinnedItems(first: 6, types: REPOSITORY) {
+        nodes {
+          ... on Repository {
+            nameWithOwner
+            url
+            description
+            stargazerCount
+            primaryLanguage {
+              name
+            }
+          }
+        }
+      }
+    }
+    search(query: $merged, type: ISSUE, first: 100) {
+      issueCount
+      nodes {
+        ... on PullRequest {
+          repository {
+            nameWithOwner
+            url
+            stargazerCount
+          }
+        }
+      }
+    }
+  }
+`;

@@ -90,6 +90,11 @@ export function createSampleMetrics(options: SampleOptions = {}): Metrics {
     isArchived: false,
   })).sort((a, b) => b.stars - a.stars);
 
+  // A separate generator, so the sections below never shift the values drawn above.
+  const extra = mulberry32((options.seed ?? 1) + 7919);
+  const opened = Math.round(commits * 0.12);
+  const merged = Math.round(opened * (0.6 + extra() * 0.35));
+
   return {
     schemaVersion: SCHEMA_VERSION,
     generatedAt: `${to}T00:00:00Z`,
@@ -116,6 +121,45 @@ export function createSampleMetrics(options: SampleOptions = {}): Metrics {
       repositories: repositories.length,
       stars: repositories.reduce((sum, r) => sum + r.stars, 0),
       forks: repositories.reduce((sum, r) => sum + r.forks, 0),
+    },
+    pullRequestStats: { opened, merged, mergedAllTime: merged + Math.floor(extra() * 400) },
+    community: {
+      sponsoring: Math.floor(extra() * 6),
+      sponsors: Math.floor(extra() * 4),
+      discussionsStarted: Math.floor(extra() * 12),
+      discussionsAnswered: Math.floor(extra() * 8),
+    },
+    highlights: {
+      pinned: repositories.slice(0, 4).map((r) => ({
+        nameWithOwner: `sample-user/${r.name}`,
+        url: r.url,
+        description: r.description,
+        stars: r.stars,
+        primaryLanguage: r.primaryLanguage,
+      })),
+      notable: {
+        mergedPullRequests: 9,
+        repositories: [
+          {
+            nameWithOwner: 'example-org/widgets',
+            url: 'https://github.com/example-org/widgets',
+            stars: 5400,
+            mergedPullRequests: 4,
+          },
+          {
+            nameWithOwner: 'example-org/compiler',
+            url: 'https://github.com/example-org/compiler',
+            stars: 1200,
+            mergedPullRequests: 3,
+          },
+          {
+            nameWithOwner: 'example-org/docs',
+            url: 'https://github.com/example-org/docs',
+            stars: 310,
+            mergedPullRequests: 2,
+          },
+        ],
+      },
     },
   };
 }
