@@ -21,7 +21,7 @@ export const ConfigSchema = z.strictObject({
   seed: z.number().int().default(1),
   /** Also write a metrics.json snapshot next to the assets. */
   saveMetrics: z.boolean().default(true),
-  /** Also write galaxy-legend.svg, a caption strip that spells out the data. */
+  /** Also write <preset>-legend.svg, a caption strip that spells out the data. */
   legend: z.boolean().default(true),
 });
 
