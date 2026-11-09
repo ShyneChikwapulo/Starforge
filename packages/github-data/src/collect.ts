@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { GraphQLClient } from './client';
 import { addDays, isoDay } from './dates';
 import { REPOS_QUERY, USER_QUERY } from './queries';
-import type { Metrics } from './schema';
+import type { Community, Highlights, Metrics, PullRequestStats } from './schema';
 import { SCHEMA_VERSION, parseMetrics } from './schema';
 
 const totalCount = z.object({ totalCount: z.number() });
@@ -87,6 +87,10 @@ export interface BuildInput {
   /** Inclusive window, YYYY-MM-DD. */
   from: string;
   to: string;
+  /** Optional sections. Omitted or null means the data was not collected. */
+  pullRequestStats?: PullRequestStats | null;
+  community?: Community | null;
+  highlights?: Highlights | null;
 }
 
 function validColor(color: string | null): string | null {
@@ -181,6 +185,9 @@ export function buildMetrics(input: BuildInput): Metrics {
       stars: repositories.reduce((sum, r) => sum + r.stars, 0),
       forks: repositories.reduce((sum, r) => sum + r.forks, 0),
     },
+    pullRequestStats: input.pullRequestStats ?? null,
+    community: input.community ?? null,
+    highlights: input.highlights ?? null,
   });
 }
 

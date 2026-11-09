@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createSampleMetrics } from './sample';
-import { MetricsSchema, parseMetrics } from './schema';
+import { MetricsSchema, SCHEMA_VERSION, parseMetrics } from './schema';
 
 describe('sample metrics', () => {
   it('validates against the schema', () => {
@@ -26,7 +26,7 @@ describe('sample metrics', () => {
 
 describe('MetricsSchema', () => {
   it('rejects an unknown schema version', () => {
-    const bad = { ...createSampleMetrics(), schemaVersion: 2 };
+    const bad = { ...createSampleMetrics(), schemaVersion: 3 };
     expect(MetricsSchema.safeParse(bad).success).toBe(false);
   });
 
@@ -48,6 +48,35 @@ describe('MetricsSchema', () => {
   it('rejects an inverted window', () => {
     const m = createSampleMetrics();
     const bad = { ...m, window: { from: m.window.to, to: m.window.from } };
+    expect(MetricsSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe('schema v2', () => {
+  it('stamps the current version', () => {
+    expect(SCHEMA_VERSION).toBe(2);
+    expect(createSampleMetrics().schemaVersion).toBe(SCHEMA_VERSION);
+  });
+
+  it('accepts null for every new section', () => {
+    const m = {
+      ...createSampleMetrics(),
+      pullRequestStats: null,
+      community: null,
+      highlights: null,
+    };
+    expect(() => parseMetrics(m)).not.toThrow();
+  });
+
+  it('rejects a v2 snapshot that leaves a new section out', () => {
+    const bad: Record<string, unknown> = { ...createSampleMetrics() };
+    delete bad.community;
+    expect(MetricsSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('rejects negative counts in the new sections', () => {
+    const m = createSampleMetrics();
+    const bad = { ...m, community: { ...m.community!, sponsors: -1 } };
     expect(MetricsSchema.safeParse(bad).success).toBe(false);
   });
 });
