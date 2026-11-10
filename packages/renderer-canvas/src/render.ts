@@ -32,6 +32,13 @@ export interface RenderOptions {
   mesh?: SolidMesh;
   /** More solid geometry, each mesh placed by a pose. It is drawn together with `mesh`. */
   bodies?: PlacedMesh[];
+  /**
+   * Draw for a light page, 0..1. Opacity still follows the light, but particle colour is
+   * multiplied by this factor so it reads as ink, and a solid background is composited with
+   * normal alpha instead of being added to. Omit for the additive glow that suits dark pages.
+   * Solid meshes are never darkened.
+   */
+  ink?: number;
 }
 
 export interface Frame {
@@ -66,6 +73,7 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
   const { width, height, camera, background } = options;
   const pointScale = options.pointScale ?? 0.06;
   const exposure = options.exposure ?? 1;
+  const ink = options.ink === undefined ? undefined : clamp(options.ink, 0, 1);
 
   const accum = new Float32Array(width * height * 3);
   const cosYaw = Math.cos(camera.yaw);
@@ -150,7 +158,24 @@ export function renderFrame(state: ParticleState, options: RenderOptions): Frame
     const meshR = solid ? solid.color[k] * cover : 0;
     const meshG = solid ? solid.color[k + 1] * cover : 0;
     const meshB = solid ? solid.color[k + 2] * cover : 0;
-    if (background) {
+    if (ink !== undefined) {
+      // A light page: the light sets the opacity, and the colour is darkened to read as ink.
+      const alpha = cover + Math.max(r, g, b) * (1 - cover);
+      const inkR = meshR + r * ink;
+      const inkG = meshG + g * ink;
+      const inkB = meshB + b * ink;
+      if (background) {
+        data[o] = (inkR + background[0] * (1 - alpha)) * 255;
+        data[o + 1] = (inkG + background[1] * (1 - alpha)) * 255;
+        data[o + 2] = (inkB + background[2] * (1 - alpha)) * 255;
+        data[o + 3] = 255;
+      } else if (alpha > 0) {
+        data[o] = Math.min(1, inkR / alpha) * 255;
+        data[o + 1] = Math.min(1, inkG / alpha) * 255;
+        data[o + 2] = Math.min(1, inkB / alpha) * 255;
+        data[o + 3] = alpha * 255;
+      }
+    } else if (background) {
       const baseR = background[0] * (1 - cover) + meshR;
       const baseG = background[1] * (1 - cover) + meshG;
       const baseB = background[2] * (1 - cover) + meshB;
