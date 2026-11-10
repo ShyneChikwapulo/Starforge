@@ -253,21 +253,21 @@ With no `repo` or `user` it shows sample data.
 
 All keys except `username` are optional.
 
-| Key               | Default                                            | Meaning                                                                                                     |
-| ----------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `username`        | required                                           | GitHub login to visualise                                                                                   |
-| `preset`          | `"galaxy"`                                         | `"galaxy"`, `"tunnel"`, `"tree"` or `"atom"`. Output files are named after it, for example `atom.webp`      |
-| `outputDir`       | `"starforge"`                                      | Where files are written                                                                                     |
-| `format`          | `"webp"`                                           | `"webp"` (small, lossy) or `"apng"` (lossless, large)                                                       |
-| `width`, `height` | the preset's own size                              | Pixel size: width 32 to 1600, height 32 to 1000                                                             |
-| `frames`, `fps`   | `60`, `15`                                         | Loop length (2 to 240 frames) and speed (1 to 60)                                                           |
-| `quality`         | `80`                                               | Lossy WebP quality, 0 to 100                                                                                |
-| `bloom`           | `0.9`                                              | Glow strength, 0 to 3; `0` turns it off. Solid parts (the tree's wood, the atom's balls) never glow         |
-| `seed`            | `1`                                                | Changes the scattered dust, not your data                                                                   |
-| `legend`          | `true`                                             | Also write `<preset>-legend.svg`, a caption strip that spells out the data                                  |
-| `theme`           | `"dark"`                                           | `"dark"`, `"light"` or `"both"`. `both` also writes a second set named with `-light`, drawn for white pages |
-| `background`      | navy for a plain `dark` run, transparent otherwise | `"transparent"`, or a page colour such as `"#0d1117"`                                                       |
-| `saveMetrics`     | `true`                                             | Also write a `metrics.json` snapshot                                                                        |
+| Key               | Default                                           | Meaning                                                                                                               |
+| ----------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `username`        | required                                          | GitHub login to visualise                                                                                             |
+| `preset`          | `"galaxy"`                                        | `"galaxy"`, `"tunnel"`, `"tree"` or `"atom"`. Output files are named after it, for example `atom.webp`                |
+| `outputDir`       | `"starforge"`                                     | Where files are written                                                                                               |
+| `format`          | `"webp"`                                          | `"webp"` (small, lossy) or `"apng"` (lossless, large)                                                                 |
+| `width`, `height` | the preset's own size                             | Pixel size: width 32 to 1600, height 32 to 1000                                                                       |
+| `frames`, `fps`   | `60`, `15`                                        | Loop length (2 to 240 frames) and speed (1 to 60)                                                                     |
+| `quality`         | `80`                                              | Lossy WebP quality, 0 to 100                                                                                          |
+| `bloom`           | `0.9`                                             | Glow strength, 0 to 3; `0` turns it off. Solid parts (the tree's wood, the atom's balls) never glow                   |
+| `seed`            | `1`                                               | Changes the scattered dust, not your data                                                                             |
+| `legend`          | `true`                                            | Also write `<preset>-legend.svg`, a caption strip that spells out the data                                            |
+| `theme`           | `"dark"`                                          | `"dark"`, `"light"` or `"both"`. `both` also writes a second set named with `-light`, drawn for white pages           |
+| `background`      | navy for a plain `dark` run, `"github"` otherwise | `"github"`, `"transparent"`, or a page colour such as `"#0d1117"` (see [Light and dark pages](#light-and-dark-pages)) |
+| `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                  |
 
 Smaller files are mostly a matter of size and length: the previews in the [gallery](#gallery) are
 480 pixels wide, 48 frames at 16 fps, quality 70.
@@ -282,11 +282,21 @@ set `theme`:
 ```
 
 `both` writes the usual files and a second set for white pages, named with `-light`
-(`atom-light.webp`, `atom-light-poster.png`, `atom-light-legend.svg`). Both sets have a
-transparent background. A glow that looks right on a dark page would wash out on a white one, so
-the light set is drawn in darker, ink-like colours with a gentler glow. Use `"theme": "light"` for
-only the light set, or `"background": "#0d1117"` to paint a single set on a colour of your own.
-A run with `both` renders twice, so it takes roughly twice as long.
+(`atom-light.webp`, `atom-light-poster.png`, `atom-light-legend.svg`). Each set is painted on
+GitHub's default page colour, `#0d1117` for dark and `#ffffff` for light, so it blends in on
+GitHub's default dark and light themes and the files stay small. The light set is drawn in
+darker, ink-like colours with a gentler glow, because a glow that suits a dark page would wash
+out on a white one. Use `"theme": "light"` for only the light set. A run with `both` renders
+twice, so it takes roughly twice as long.
+
+### Choosing a background
+
+| `background`    | What it does                                                                                                                            |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| left out        | The original navy for a plain `dark` run, and `"github"` for `light` and `both`                                                         |
+| `"github"`      | `#0d1117` for the dark set and `#ffffff` for the light set. Small files. A faint edge shows on GitHub's other dark themes               |
+| `"transparent"` | No page colour, so it blends into any theme. In our tests the files were four to five times larger, because the alpha is stored exactly |
+| `"#rrggbb"`     | Your own page colour, for a single theme. With `both`, use `"github"` or `"transparent"` instead                                        |
 
 Both sets must come from one run, because the Action publishes exactly the files of the run that
 made them. Then let the page pick one with a `<picture>` element; the dark image is the default:
