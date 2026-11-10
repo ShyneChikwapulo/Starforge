@@ -42,9 +42,9 @@ const DEFAULT_BACKGROUND: [number, number, number] = [0.02, 0.03, 0.06];
 const DEFAULT_BLOOM: BloomOptions = { strength: 0.9, levels: 4 };
 
 /** Particle colour multiplier for a light page, so the glow reads as ink instead of light. */
-export const LIGHT_INK = 0.6;
+export const LIGHT_INK = 0.5;
 /** Bloom is gentler on a light page, where it shows as a pale halo instead of added light. */
-export const LIGHT_BLOOM_SCALE = 0.6;
+export const LIGHT_BLOOM_SCALE = 0.3;
 
 /**
  * Render a seamlessly looping animation once per look. The simulation runs a single time and
