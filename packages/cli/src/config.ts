@@ -30,21 +30,25 @@ export const ConfigSchema = z
      */
     theme: z.enum(['dark', 'light', 'both']).default('dark'),
     /**
-     * "transparent", or a page colour as "#rrggbb". Left out, a plain "dark" run keeps its original
-     * navy and every other run is transparent.
+     * The page colour the images are drawn on. "github" uses GitHub's default page colours,
+     * #0d1117 for the dark set and #ffffff for the light set, which blends in on those themes and
+     * keeps files small. "transparent" blends in on every theme but makes the files several times
+     * larger. Or give a colour as "#rrggbb". Left out, a plain "dark" run keeps its original navy
+     * and every other run uses "github".
      */
     background: z
-      .union([z.literal('transparent'), z.string().regex(/^#[0-9a-fA-F]{6}$/)])
+      .union([z.literal('github'), z.literal('transparent'), z.string().regex(/^#[0-9a-fA-F]{6}$/)])
       .optional(),
   })
   .refine(
     (config) =>
       config.theme !== 'both' ||
       config.background === undefined ||
+      config.background === 'github' ||
       config.background === 'transparent',
     {
       message:
-        'theme "both" draws on a transparent background, so "background" must be "transparent" or left out',
+        'theme "both" paints two sets, so "background" must be "github", "transparent" or left out, not one colour',
       path: ['background'],
     },
   );

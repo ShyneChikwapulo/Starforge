@@ -21,11 +21,10 @@ describe('theme and background options', () => {
     });
   });
 
-  it('accept transparent or a six-digit colour', () => {
-    expect(parseConfig({ username: 'octo', background: 'transparent' }).background).toBe(
-      'transparent',
-    );
-    expect(parseConfig({ username: 'octo', background: '#0d1117' }).background).toBe('#0d1117');
+  it('accept github, transparent or a six-digit colour', () => {
+    for (const background of ['github', 'transparent', '#0d1117']) {
+      expect(parseConfig({ username: 'octo', background }).background).toBe(background);
+    }
   });
 
   it('reject anything else', () => {
@@ -43,13 +42,15 @@ describe('theme and background options', () => {
     ).not.toThrow();
   });
 
-  it('refuse a solid colour for both themes at once', () => {
+  it('refuse one solid colour for both themes at once', () => {
     expect(() => parseConfig({ username: 'octo', theme: 'both', background: '#0d1117' })).toThrow(
       /transparent/,
     );
-    expect(() =>
-      parseConfig({ username: 'octo', theme: 'both', background: 'transparent' }),
-    ).not.toThrow();
-    expect(() => parseConfig({ username: 'octo', theme: 'both' })).not.toThrow();
+  });
+
+  it('let both themes use github, transparent or the default', () => {
+    for (const background of ['github', 'transparent', undefined]) {
+      expect(() => parseConfig({ username: 'octo', theme: 'both', background })).not.toThrow();
+    }
   });
 });
