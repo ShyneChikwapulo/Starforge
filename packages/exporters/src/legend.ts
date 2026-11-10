@@ -4,8 +4,13 @@ import { GALAXY_MAX_ARMS } from '@starforge/presets';
 export interface LegendOptions {
   /** Pixel width. Default 800, to sit under an 800px animation. */
   width?: number;
-  /** Background as "#rrggbb". Default matches the galaxy renderer's background. */
-  background?: string;
+  /**
+   * Background card as "#rrggbb", or null for none. Default: the galaxy renderer's navy on the
+   * dark theme, and no card on the light theme.
+   */
+  background?: string | null;
+  /** Text colours: light text for dark pages (default), or dark text for light pages. */
+  theme?: 'dark' | 'light';
   /** One line explaining the encodings. Default describes the galaxy preset. */
   caption?: string;
 }
@@ -18,6 +23,11 @@ const CAPTION_LINE = 16;
 const CHAR_WIDTH = 7.6;
 const FALLBACK_COLOR = '#8b949e';
 const SAFE_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+const PALETTES = {
+  dark: { title: '#f0f6fc', text: '#c9d1d9', muted: '#8b949e', subtle: '#6e7681' },
+  light: { title: '#1f2328', text: '#24292f', muted: '#57606a', subtle: '#6e7781' },
+};
 
 const escapeXml = (text: string): string =>
   text
@@ -59,7 +69,10 @@ export function wrapCaption(text: string, maxChars: number): string[] {
  */
 export function renderLegendSvg(metrics: Metrics, options: LegendOptions = {}): string {
   const width = options.width ?? 800;
-  const background = options.background ?? '#05080f';
+  const theme = options.theme ?? 'dark';
+  const palette = PALETTES[theme];
+  const background =
+    options.background === undefined ? (theme === 'dark' ? '#05080f' : null) : options.background;
   const caption = options.caption ?? DEFAULT_CAPTION;
   const login = metrics.user.login;
 
@@ -75,7 +88,7 @@ export function renderLegendSvg(metrics: Metrics, options: LegendOptions = {}): 
   let chips: string;
   let rows = 1;
   if (arms.length === 0) {
-    chips = `<text x="20" y="72" font-size="13" fill="#8b949e">No language data yet</text>`;
+    chips = `<text x="20" y="72" font-size="13" fill="${palette.muted}">No language data yet</text>`;
   } else {
     let x = 20;
     const parts: string[] = [];
@@ -93,7 +106,7 @@ export function renderLegendSvg(metrics: Metrics, options: LegendOptions = {}): 
       parts.push(
         `<circle cx="${x + 6}" cy="${y}" r="6" fill="${color}"/>` +
           `<text x="${x + 18}" y="${y + 4}" font-size="13">${escapeXml(name)} ` +
-          `<tspan fill="#8b949e">${share}</tspan></text>`,
+          `<tspan fill="${palette.muted}">${share}</tspan></text>`,
       );
       x += chipWidth;
     }
@@ -108,15 +121,17 @@ export function renderLegendSvg(metrics: Metrics, options: LegendOptions = {}): 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(label)}">`,
     `<title>${escapeXml(label)}</title>`,
-    `<rect width="${width}" height="${height}" rx="8" fill="${background}"/>`,
-    `<g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" fill="#c9d1d9">`,
-    `<text x="20" y="32" font-size="18" font-weight="600" fill="#f0f6fc">@${escapeXml(login)}</text>`,
-    `<text x="${width - 20}" y="32" font-size="13" text-anchor="end" fill="#8b949e">${escapeXml(stats)}</text>`,
-    `<text x="20" y="50" font-size="11" fill="#6e7681">LAST 12 MONTHS · LANGUAGES BY SHARE OF CODE</text>`,
+    ...(background
+      ? [`<rect width="${width}" height="${height}" rx="8" fill="${background}"/>`]
+      : []),
+    `<g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" fill="${palette.text}">`,
+    `<text x="20" y="32" font-size="18" font-weight="600" fill="${palette.title}">@${escapeXml(login)}</text>`,
+    `<text x="${width - 20}" y="32" font-size="13" text-anchor="end" fill="${palette.muted}">${escapeXml(stats)}</text>`,
+    `<text x="20" y="50" font-size="11" fill="${palette.subtle}">LAST 12 MONTHS · LANGUAGES BY SHARE OF CODE</text>`,
     chips,
     ...captionLines.map(
       (line, i) =>
-        `<text x="20" y="${height - 16 - (captionLines.length - 1 - i) * CAPTION_LINE}" font-size="12" fill="#8b949e">${escapeXml(line)}</text>`,
+        `<text x="20" y="${height - 16 - (captionLines.length - 1 - i) * CAPTION_LINE}" font-size="12" fill="${palette.muted}">${escapeXml(line)}</text>`,
     ),
     `</g>`,
     `</svg>`,
