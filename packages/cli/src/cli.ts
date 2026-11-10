@@ -35,15 +35,18 @@ async function main(): Promise<void> {
   const started = Date.now();
   const result = await generate({ config, metrics, token: process.env.GITHUB_TOKEN, cwd });
 
-  console.log(`Wrote ${result.animation}`);
-  console.log(`Wrote ${result.poster}`);
+  for (const variant of result.variants) {
+    console.log(`Wrote ${variant.animation}`);
+    console.log(`Wrote ${variant.poster}`);
+    if (variant.legend) console.log(`Wrote ${variant.legend}`);
+  }
   if (result.metrics) console.log(`Metrics snapshot: ${result.metrics}`);
-  if (result.legend) console.log(`Wrote ${result.legend}`);
   if (process.env.GITHUB_OUTPUT) {
     await appendFile(process.env.GITHUB_OUTPUT, formatStepOutputs(result));
   }
+  const megabytes = result.variants.reduce((sum, v) => sum + v.animationBytes, 0) / 1_000_000;
   console.log(
-    `${(result.animationBytes / 1_000_000).toFixed(2)} MB animation, ` +
+    `${megabytes.toFixed(2)} MB ${result.variants.length > 1 ? 'of animations' : 'animation'}, ` +
       `done in ${((Date.now() - started) / 1000).toFixed(1)}s`,
   );
 }

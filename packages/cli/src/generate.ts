@@ -2,9 +2,10 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { getPreset } from '@starforge/presets';
 import { renderLegendSvg } from '@starforge/exporters';
 import { join, resolve } from 'node:path';
-import { encodeApng, encodePng, encodeWebp, renderLoop } from '@starforge/exporters';
+import { encodeApng, encodePng, encodeWebp, renderLoops } from '@starforge/exporters';
 import { collectMetrics, createGraphQLClient, type Metrics } from '@starforge/github-data';
 import type { StarforgeConfig } from './config';
+import { resolveLooks, type ThemeName } from './looks';
 
 export interface GenerateOptions {
   config: StarforgeConfig;
@@ -18,8 +19,19 @@ export interface GenerateOptions {
   webpBinary?: string;
 }
 
+/** The files written for one theme. */
+export interface GeneratedVariant {
+  theme: ThemeName;
+  animation: string;
+  poster: string;
+  /** Present when `legend` is enabled. */
+  legend?: string;
+  animationBytes: number;
+}
+
 export interface GenerateResult {
   directory: string;
+  /** The first variant's files. For a single theme, that is everything. */
   animation: string;
   poster: string;
   /** Present when `saveMetrics` is enabled. */
@@ -27,6 +39,8 @@ export interface GenerateResult {
   /** Present when `legend` is enabled. */
   legend?: string;
   animationBytes: number;
+  /** Every variant written, dark first. Two when `theme` is "both", otherwise one. */
+  variants: GeneratedVariant[];
 }
 
 /**
@@ -63,46 +77,62 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   const preset = getPreset(config.preset)!;
   const width = config.width ?? preset.size.width;
   const height = config.height ?? preset.size.height;
-  const frames = renderLoop(preset, metrics, {
-    width: width,
-    height: height,
-    frames: config.frames,
-    seed: config.seed,
-    bloom: config.bloom > 0 ? { strength: config.bloom, levels: 4 } : null,
-  });
-  const rgba = frames.map((frame) => frame.data);
-
-  const animation =
-    config.format === 'webp'
-      ? await encodeWebp({
-          width: width,
-          height: height,
-          frames: rgba,
-          fps: config.fps,
-          quality: config.quality,
-          binary: options.webpBinary,
-        })
-      : encodeApng({ width: width, height: height, frames: rgba, fps: config.fps });
-  const poster = encodePng(width, height, frames[0]!.data);
+  const looks = resolveLooks(config);
+  const rendered = renderLoops(
+    preset,
+    metrics,
+    { width, height, frames: config.frames, seed: config.seed },
+    looks.map((resolved) => resolved.look),
+  );
 
   const directory = resolve(options.cwd ?? process.cwd(), config.outputDir);
   await mkdir(directory, { recursive: true });
 
-  const animationPath = join(
-    directory,
-    `${config.preset}.${config.format === 'webp' ? 'webp' : 'png'}`,
-  );
-  const posterPath = join(directory, `${config.preset}-poster.png`);
-  await writeFile(animationPath, animation);
-  await writeFile(posterPath, poster);
+  const variants: GeneratedVariant[] = [];
+  for (const [index, resolved] of looks.entries()) {
+    const frames = rendered[index]!;
+    const rgba = frames.map((frame) => frame.data);
 
-  let legendPath: string | undefined;
-  if (config.legend) {
-    legendPath = join(directory, `${config.preset}-legend.svg`);
-    await writeFile(
-      legendPath,
-      renderLegendSvg(metrics, { width: width, caption: preset.caption }),
-    );
+    const animation =
+      config.format === 'webp'
+        ? await encodeWebp({
+            width,
+            height,
+            frames: rgba,
+            fps: config.fps,
+            quality: config.quality,
+            binary: options.webpBinary,
+          })
+        : encodeApng({ width, height, frames: rgba, fps: config.fps });
+    const poster = encodePng(width, height, frames[0]!.data);
+
+    const name = `${config.preset}${resolved.suffix}`;
+    const animationPath = join(directory, `${name}.${config.format === 'webp' ? 'webp' : 'png'}`);
+    const posterPath = join(directory, `${name}-poster.png`);
+    await writeFile(animationPath, animation);
+    await writeFile(posterPath, poster);
+
+    let legendPath: string | undefined;
+    if (config.legend) {
+      legendPath = join(directory, `${name}-legend.svg`);
+      await writeFile(
+        legendPath,
+        renderLegendSvg(metrics, {
+          width,
+          caption: preset.caption,
+          theme: resolved.theme,
+          background: resolved.legendBackground,
+        }),
+      );
+    }
+
+    variants.push({
+      theme: resolved.theme,
+      animation: animationPath,
+      poster: posterPath,
+      legend: legendPath,
+      animationBytes: animation.length,
+    });
   }
 
   let metricsPath: string | undefined;
@@ -111,12 +141,14 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     await writeMetricsSnapshot(metricsPath, metrics);
   }
 
+  const first = variants[0]!;
   return {
     directory,
-    animation: animationPath,
-    poster: posterPath,
+    animation: first.animation,
+    poster: first.poster,
     metrics: metricsPath,
-    legend: legendPath,
-    animationBytes: animation.length,
+    legend: first.legend,
+    animationBytes: first.animationBytes,
+    variants,
   };
 }
