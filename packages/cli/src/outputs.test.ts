@@ -9,6 +9,15 @@ const result: GenerateResult = {
   legend: '/out/galaxy-legend.svg',
   metrics: '/out/metrics.json',
   animationBytes: 1,
+  variants: [
+    {
+      theme: 'dark',
+      animation: '/out/galaxy.webp',
+      poster: '/out/galaxy-poster.png',
+      legend: '/out/galaxy-legend.svg',
+      animationBytes: 1,
+    },
+  ],
 };
 
 describe('formatStepOutputs', () => {
@@ -19,12 +28,37 @@ describe('formatStepOutputs', () => {
   });
 
   it('leaves out the legend when there is none', () => {
-    expect(formatStepOutputs({ ...result, legend: undefined })).toBe(
+    const noLegend = {
+      ...result,
+      legend: undefined,
+      variants: [{ ...result.variants[0]!, legend: undefined }],
+    };
+    expect(formatStepOutputs(noLegend)).toBe(
       'directory=/out\nfiles=galaxy.webp galaxy-poster.png\n',
     );
   });
 
   it('never publishes the metrics snapshot', () => {
     expect(formatStepOutputs(result)).not.toContain('metrics.json');
+  });
+
+  it('lists every variant, dark first, so one publish keeps both sets', () => {
+    const both: GenerateResult = {
+      ...result,
+      variants: [
+        ...result.variants,
+        {
+          theme: 'light',
+          animation: '/out/galaxy-light.webp',
+          poster: '/out/galaxy-light-poster.png',
+          legend: '/out/galaxy-light-legend.svg',
+          animationBytes: 1,
+        },
+      ],
+    };
+    expect(formatStepOutputs(both)).toBe(
+      'directory=/out\nfiles=galaxy.webp galaxy-poster.png galaxy-legend.svg ' +
+        'galaxy-light.webp galaxy-light-poster.png galaxy-light-legend.svg\n',
+    );
   });
 });

@@ -180,3 +180,52 @@ describe('renderFrame with moving bodies', () => {
     expect(g).toBe(0);
   });
 });
+
+describe('renderFrame with ink', () => {
+  // Each row is written back to front, so a particle at the middle lands one column left.
+  const centre = ((H / 2) * W + W / 2 - 1) * 4;
+  const lit = particles({ at: [0, 0, 0], rgb: 0.3 });
+  const draw = (background: [number, number, number] | null, ink?: number) =>
+    renderFrame(lit, {
+      width: W,
+      height: H,
+      camera: CAMERA,
+      background,
+      ...(ink === undefined ? {} : { ink }),
+    });
+  const triangle: SolidMesh = {
+    positions: new Float32Array([-3, -3, 0, 3, -3, 0, 0, 3, 0]),
+    normals: new Float32Array([0, 0, -1, 0, 0, -1, 0, 0, -1]),
+    colors: new Float32Array([1, 0, 0, 1, 0, 0, 1, 0, 0]),
+    indices: new Uint32Array([0, 1, 2]),
+  };
+
+  it('keeps the opacity of a plain transparent render and darkens only the colour', () => {
+    const plain = draw(null);
+    const inked = draw(null, 0.5);
+    expect(inked.data[centre + 3]).toBe(plain.data[centre + 3]);
+    expect(plain.data[centre]).toBe(255);
+    expect(Math.abs(inked.data[centre]! - 128)).toBeLessThanOrEqual(1);
+  });
+
+  it('shows up on a white page instead of vanishing into it', () => {
+    const white: [number, number, number] = [1, 1, 1];
+    // Added to white, light has nowhere to go: this is why a light page needs its own look.
+    expect(draw(white).data[centre]).toBe(255);
+    const inked = draw(white, 0.5);
+    expect(inked.data[centre]!).toBeLessThan(250);
+    expect(inked.data[0]).toBe(255);
+    expect(inked.data[3]).toBe(255);
+  });
+
+  it('leaves a solid mesh as it is drawn', () => {
+    const options = { width: W, height: H, camera: CAMERA, background: null, mesh: triangle };
+    const plain = renderFrame(createParticleState(0), options);
+    const inked = renderFrame(createParticleState(0), { ...options, ink: 0.5 });
+    expect(inked.data).toEqual(plain.data);
+  });
+
+  it('clamps a grade outside 0..1', () => {
+    expect(draw(null, 2).data).toEqual(draw(null, 1).data);
+  });
+});
