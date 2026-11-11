@@ -119,22 +119,45 @@ describe('buildTextMesh', () => {
     expect(max[2]).toBeCloseTo(0.15, 5);
   });
 
-  it('aligns left, centre and right around x = 0', () => {
+  it('aligns left, centre and right around x = 0, with the text running along -x', () => {
     const width = measureText('HHH', base).width;
     const left = buildTextMesh('HHH', base);
     const centre = buildTextMesh('HHH', { ...base, align: 'center' });
     const right = buildTextMesh('HHH', { ...base, align: 'right' });
     expect(left.width).toBeCloseTo(width, 6);
 
+    // The default camera draws -x towards the right of the image.
     const l = bounds(left.mesh);
-    expect(l.min[0]).toBeGreaterThanOrEqual(0);
-    expect(l.max[0]).toBeLessThanOrEqual(width + 1e-6);
+    expect(l.max[0]).toBeLessThanOrEqual(1e-6);
+    expect(l.min[0]).toBeGreaterThanOrEqual(-width - 1e-6);
     const c = bounds(centre.mesh);
     expect(c.min[0]).toBeGreaterThanOrEqual(-width / 2 - 1e-6);
     expect(c.max[0]).toBeLessThanOrEqual(width / 2 + 1e-6);
     const r = bounds(right.mesh);
-    expect(r.min[0]).toBeGreaterThanOrEqual(-width - 1e-6);
-    expect(r.max[0]).toBeLessThanOrEqual(1e-6);
+    expect(r.min[0]).toBeGreaterThanOrEqual(-1e-6);
+    expect(r.max[0]).toBeLessThanOrEqual(width + 1e-6);
+  });
+
+  it('reads left to right from the default camera', () => {
+    const one = bounds(buildTextMesh('I', base).mesh);
+    const two = bounds(buildTextMesh('II', base).mesh);
+    // The first letter stays where it was, and the next one is added further along -x.
+    expect(two.max[0]).toBeCloseTo(one.max[0], 5);
+    expect(two.min[0]).toBeLessThan(one.min[0] - 0.1);
+  });
+
+  it('puts the foot of an L on the right of the image', () => {
+    const { mesh } = buildTextMesh('L', base);
+    let topMin = Infinity;
+    let footMin = Infinity;
+    for (let i = 0; i < mesh.positions.length; i += 3) {
+      const x = mesh.positions[i]!;
+      const y = mesh.positions[i + 1]!;
+      if (y > 0.9) topMin = Math.min(topMin, x);
+      if (y < 0.1) footMin = Math.min(footMin, x);
+    }
+    // The foot reaches further along -x, which the default camera draws to the right.
+    expect(footMin).toBeLessThan(topMin - 0.15);
   });
 
   it('gives the front and the back the same number of triangles', () => {

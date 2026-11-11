@@ -2,8 +2,10 @@ import type { SolidMesh } from '@starforge/core';
 import { FIRST_GLYPH, FONT_CAP_HEIGHT, glyphData } from './text-font-data';
 
 /**
- * Text as a solid mesh. Letters lie in the xy-plane, read along +x with up as +y, and their front
- * face points at the default camera (-z). The mesh is centred on z = 0.
+ * Text as a solid mesh. Letters lie in the xy-plane with up as +y, and their front face (normal
+ * -z) points at the default camera. That camera looks along +z and draws world -x towards the
+ * right of the image, so the text reads along -x: align "left" puts x = 0 at the start of the
+ * text and the rest of it at negative x. The mesh is centred on z = 0.
  *
  * Only printable ASCII is available. Any other character is drawn as a question mark and reported
  * in `missing`, so a caller can fall back to something that is plain ASCII, like a login.
@@ -234,6 +236,18 @@ export function buildTextMesh(text: string, options: TextMeshOptions): TextMesh 
       }
       start += length;
     }
+  }
+
+  // The renderer draws world -x towards the right of the image, so mirror the finished mesh to
+  // make the text read left to right from the default camera. Flipping x also flips the winding.
+  for (let i = 0; i < positions.length; i += 3) {
+    positions[i] = -positions[i]!;
+    normals[i] = -normals[i]!;
+  }
+  for (let k = 0; k < indices.length; k += 3) {
+    const second = indices[k + 1]!;
+    indices[k + 1] = indices[k + 2]!;
+    indices[k + 2] = second;
   }
 
   return { mesh: { positions, normals, colors, indices }, width, missing };
