@@ -4,3 +4,4 @@ export * from './behaviours';
 export * from './simulation';
 export * from './loop';
 export * from './mesh';
+export * from './mesh-tools';

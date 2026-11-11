@@ -364,6 +364,13 @@ baked results are in this repository (`packages/presets/src/atom-kitten-data.ts`
 `language-icons-data.ts`); `scripts/bake-atom-kitten.ts` and `scripts/bake-language-icons.ts`
 rebuild them.
 
+Starforge's 3D text is built from glyph outlines baked from
+[Inter](https://rsms.me/inter/) SemiBold 4.1, licensed under the
+[SIL Open Font License 1.1](licenses/Inter-OFL-1.1.txt). Only the baked triangle meshes are in
+this repository (`packages/presets/src/text-font-data.ts`); `scripts/bake-text-font.ts` rebuilds
+them. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) lists every third-party work in this
+repository.
+
 ## License
 
 MIT

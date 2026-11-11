@@ -22,7 +22,9 @@
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^26.6.6",
+    "earcut": "^3.2.4",
     "eslint": "^10.14.0",
+    "opentype.js": "^2.0.0",
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
