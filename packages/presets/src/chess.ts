@@ -219,8 +219,8 @@ export const chessPreset: Preset = {
     'Each square is a day, a week to a column · the stronger the piece, the busier the day: pawn, knight, rook, queen, king · a bare square is a quiet day',
   caption:
     'Board: one square per day · Piece: pawn to king, taller and greener = busier · Empty square: no activity',
-  view: { yaw: 0, pitch: 0.65, distance: 21, fov: Math.PI / 4 },
+  view: { yaw: 0, pitch: 0.7, distance: 22.5, fov: Math.PI / 4 },
   sway: 0.15,
-  size: { width: 960, height: 240 },
+  size: { width: 960, height: 200 },
   build: buildChess,
 };
