@@ -2,7 +2,6 @@ import {
   createParticleState,
   createRng,
   drag,
-  jitter,
   scatterInBox,
   spring,
   type ParticleState,
@@ -19,7 +18,7 @@ import {
   type PieceKind,
 } from './chess-pieces';
 import { dayEntity } from './entities';
-import { hexToRgb, scaleColor, type Rgb } from './scale';
+import { hexToRgb, type Rgb } from './scale';
 import type { Entity, Preset, PresetOptions, PresetResult } from './types';
 
 const DEFAULT_PARTICLES = 16000;
@@ -47,21 +46,12 @@ const NAMES: Record<PieceKind, string> = {
   queen: 'Queen',
   king: 'King',
 };
-/** How the pieces rank, for how big a bead and how much sparkle each one gets. */
-const LEVEL: Record<PieceKind, number> = { pawn: 1, knight: 2, rook: 3, queen: 4, king: 5 };
-/** Share of the sparkle each piece gets: the tall ones glow most. */
-const HALO_WEIGHT: Record<PieceKind, number> = {
-  pawn: 0.15,
-  knight: 0.5,
-  rook: 1,
-  queen: 2.5,
-  king: 5,
-};
 
 const SLAB: Rgb = [0.04, 0.05, 0.07];
 const TILE_A: Rgb = [0.085, 0.105, 0.135];
 const TILE_B: Rgb = [0.06, 0.075, 0.1];
-const QUIET_BEAD: Rgb = [0.18, 0.22, 0.28];
+/** Particles in this preset give off no light: the picture is only the lit board and pieces. */
+const NO_LIGHT: Rgb = [0, 0, 0];
 
 /**
  * The piece for each day. Days with no activity get none. The rest are ranked by quartile of the
@@ -151,23 +141,15 @@ function buildBoard(columns: number, pieces: readonly PlacedPiece[]): SolidMesh 
   return toMesh(b);
 }
 
-function put(
-  state: ParticleState,
-  index: number,
-  x: number,
-  y: number,
-  z: number,
-  color: Rgb,
-  size: number,
-): void {
+function put(state: ParticleState, index: number, x: number, y: number, z: number): void {
   const i = index * 3;
   state.target[i] = x;
   state.target[i + 1] = y;
   state.target[i + 2] = z;
-  state.color[i] = color[0];
-  state.color[i + 1] = color[1];
-  state.color[i + 2] = color[2];
-  state.size[index] = size;
+  state.color[i] = NO_LIGHT[0];
+  state.color[i + 1] = NO_LIGHT[1];
+  state.color[i + 2] = NO_LIGHT[2];
+  state.size[index] = 1;
 }
 
 /**
@@ -175,8 +157,11 @@ function put(
  * - one square per calendar day, a week to a column and a weekday to a row
  * - the piece on a square says how busy the day was: pawn, knight, rook, queen, king, and a bare
  *   square for a quiet day. Colour and height both grow with it
- * - one bead per day sits on its piece, and is returned as an entity so a viewer can explain it
- * - sparkle gathers around the tall pieces, and motes drift above the board (decoration only)
+ *
+ * The picture is solid: the board and every piece are lit triangles. The particles give off no
+ * light. There is one per day, above its piece, so a viewer can explain a day on hover (these are
+ * the returned entities), and the rest only fill out the particle count so presets can morph into
+ * one another.
  */
 export function buildChess(metrics: Metrics, options: PresetOptions = {}): PresetResult {
   const seed = options.seed ?? 1;
@@ -198,60 +183,18 @@ export function buildChess(metrics: Metrics, options: PresetOptions = {}): Prese
     const entity = dayEntity(index, day);
     if (kind === null) {
       entities.push(entity);
-      put(state, index++, square.x, TILE_HEIGHT + 0.04, square.z, QUIET_BEAD, 0.45);
+      put(state, index++, square.x, TILE_HEIGHT + 0.04, square.z);
       return;
     }
     pieces.push({ kind, x: square.x, z: square.z });
     entities.push({ ...entity, detail: `${entity.detail} · ${NAMES[kind]}` });
-    put(
-      state,
-      index++,
-      square.x,
-      TILE_HEIGHT + PIECE_SPECS[kind].height + 0.18,
-      square.z,
-      COLORS[kind],
-      0.9 + 0.35 * LEVEL[kind],
-    );
+    put(state, index++, square.x, TILE_HEIGHT + PIECE_SPECS[kind].height + 0.18, square.z);
   });
 
-  const totalWeight = pieces.reduce((sum, piece) => sum + HALO_WEIGHT[piece.kind], 0);
-  const pickPiece = (u: number): PlacedPiece => {
-    let cumulative = 0;
-    for (const piece of pieces) {
-      cumulative += HALO_WEIGHT[piece.kind] / totalWeight;
-      if (u < cumulative) return piece;
-    }
-    return pieces[pieces.length - 1]!;
-  };
-  const haloCount = pieces.length > 0 ? Math.round(dustCount * 0.55) : 0;
-  const halfWidth = Math.max(columns / 2 + 0.5, 1);
-
+  // The filler sits inside the board, out of sight.
+  const halfWidth = Math.max(columns / 2, 1);
   for (let n = 0; n < dustCount; n++) {
-    if (n < haloCount) {
-      const piece = pickPiece(rng());
-      const angle = rng() * Math.PI * 2;
-      const radius = 0.14 + 0.4 * rng();
-      const height = TILE_HEIGHT + (PIECE_SPECS[piece.kind].height + 0.5) * Math.sqrt(rng());
-      put(
-        state,
-        index++,
-        piece.x + Math.cos(angle) * radius,
-        height,
-        piece.z + Math.sin(angle) * radius,
-        scaleColor(COLORS[piece.kind], 0.35 + 0.5 * rng()),
-        0.4 + 0.7 * rng(),
-      );
-    } else {
-      put(
-        state,
-        index++,
-        (rng() * 2 - 1) * halfWidth,
-        TILE_HEIGHT + rng() * rng() * 5,
-        (rng() * 2 - 1) * (ROWS / 2 + 0.5),
-        scaleColor([0.2, 0.9, 0.4], 0.12 + 0.2 * rng()),
-        0.35 + 0.45 * rng(),
-      );
-    }
+    put(state, index++, (rng() * 2 - 1) * halfWidth, -0.1, (rng() * 2 - 1) * (ROWS / 2));
   }
 
   if (options.startScattered) {
@@ -265,11 +208,7 @@ export function buildChess(metrics: Metrics, options: PresetOptions = {}): Prese
     seed,
     entities,
     mesh: buildBoard(columns, pieces),
-    behaviours: [
-      spring({ stiffness: 6, damping: 4 }),
-      jitter({ strength: 0.9 }),
-      drag({ coefficient: 0.2 }),
-    ],
+    behaviours: [spring({ stiffness: 6, damping: 4 }), drag({ coefficient: 0.2 })],
   };
 }
 

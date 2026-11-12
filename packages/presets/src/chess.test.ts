@@ -184,3 +184,19 @@ describe('chessPreset', () => {
     expect(chessPreset.view.yaw).toBe(0);
   });
 });
+
+describe('a solid chessboard', () => {
+  it('gives its particles no light, so only the board and pieces are drawn', () => {
+    const { state } = buildChess(sample, { particleCount: 1500 });
+    expect(state.color.every((channel) => channel === 0)).toBe(true);
+  });
+
+  it('keeps the filler particles inside the board, out of sight', () => {
+    const { state, entities } = buildChess(sample, { particleCount: 1500 });
+    const { columns } = layoutDays(calendar);
+    for (let i = entities.length; i < state.count; i++) {
+      expect(Math.abs(state.target[i * 3]!)).toBeLessThanOrEqual(columns / 2);
+      expect(state.target[i * 3 + 1]!).toBeLessThan(0);
+    }
+  });
+});
