@@ -54,6 +54,12 @@ export interface Preset {
   caption: string;
   /** Where the camera starts. */
   view: ViewPose;
+  /**
+   * Radians. When set, an exported animation swings the camera this far either side of the
+   * starting yaw instead of orbiting the scene. That suits a wide scene, which a full orbit would
+   * swing towards the lens. Without it, the camera makes one full turn.
+   */
+  sway?: number;
   /** Default pixel size for README animations when the config does not set one. */
   size: { width: number; height: number };
   build(metrics: Metrics, options?: PresetOptions): PresetResult;

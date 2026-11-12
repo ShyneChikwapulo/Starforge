@@ -47,6 +47,16 @@ export const LIGHT_INK = 0.5;
 export const LIGHT_BLOOM_SCALE = 0.3;
 
 /**
+ * The camera for one moment of a loop, as a share of the loop that has passed: one full orbit, or
+ * a sway either side of the starting yaw if the preset asks for one. Both come back to where they
+ * started, so the loop is seamless.
+ */
+export function cameraFor(preset: Pick<Preset, 'sway'>, camera: Camera, turn: number): Camera {
+  if (preset.sway === undefined) return orbitCamera(camera, turn);
+  return { ...camera, yaw: camera.yaw + preset.sway * Math.sin(Math.PI * 2 * turn) };
+}
+
+/**
  * Render a seamlessly looping animation once per look. The simulation runs a single time and
  * every look is painted from the same frames, so a second look costs only its rendering. The
  * camera makes exactly one full orbit, and the simulation's tail is blended into its head, so
@@ -84,7 +94,7 @@ export function renderLoops(
       return renderFrame(state, {
         width,
         height,
-        camera: orbitCamera(camera, i / length),
+        camera: cameraFor(preset, camera, i / length),
         background,
         mesh,
         bodies: bodies?.map((body) => ({ mesh: body.mesh, pose: body.pose(i / length) })),
