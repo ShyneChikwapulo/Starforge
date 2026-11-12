@@ -10,7 +10,7 @@ interactive viewer, where you can orbit, zoom and hover to read the data behind 
 
 ## Gallery
 
-Four presets, each a different way of looking at the same data. Pick one with a single line of
+Five presets, each a different way of looking at the same data. Pick one with a single line of
 config. Click an image to jump to its documentation, or open it in 3D.
 
 <table>
@@ -44,6 +44,15 @@ config. Click an image to jump to its documentation, or open it in 3D.
       <b><a href="#atom">Atom</a></b> · <a href="https://shynechikwapulo.github.io/Starforge/?preset=atom">explore in 3D</a>
       <br />
       Language logo balls orbiting a particle kitten of your year
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <a href="#chess"><img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/chess.webp" alt="An animated solid chessboard: one square per day of the year, with a pawn, knight, rook, queen or king on each active day" width="800" /></a>
+      <br />
+      <b><a href="#chess">Chess</a></b> · <a href="https://shynechikwapulo.github.io/Starforge/?preset=chess">explore in 3D</a>
+      <br />
+      A solid chessboard of your year: a square per day, and the busier the day, the stronger the piece
     </td>
   </tr>
 </table>
@@ -94,12 +103,13 @@ Everything is deterministic: the same data, preset and seed always produce the s
 Choose one with `"preset"` in `starforge.config.json`. The interactive viewer has a switch between
 all of them and morphs one into another (`?preset=tunnel` opens it directly).
 
-| Preset   | Default size | Best for                                                           |
-| -------- | ------------ | ------------------------------------------------------------------ |
-| `galaxy` | 800 × 400    | An at-a-glance overview of languages, repositories and the year    |
-| `tunnel` | 800 × 400    | Seeing how your activity and projects unfold over time             |
-| `tree`   | 720 × 720    | A friendly picture of the year, with a leaf for every contribution |
-| `atom`   | 720 × 720    | Showing off the languages you use, with their logos                |
+| Preset   | Default size | Best for                                                                |
+| -------- | ------------ | ----------------------------------------------------------------------- |
+| `galaxy` | 800 × 400    | An at-a-glance overview of languages, repositories and the year         |
+| `tunnel` | 800 × 400    | Seeing how your activity and projects unfold over time                  |
+| `tree`   | 720 × 720    | A friendly picture of the year, with a leaf for every contribution      |
+| `atom`   | 720 × 720    | Showing off the languages you use, with their logos                     |
+| `chess`  | 960 × 200    | A solid, literal picture of every day: one square and one piece per day |
 
 ### Galaxy
 
@@ -192,6 +202,34 @@ A few things worth knowing:
 - In the interactive viewer each ball turns to face you, and hovering one shows the language and
   its share of your code.
 
+### Chess
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/chess.webp" alt="An animated solid chessboard built from sample GitHub activity" width="800" />
+  <br />
+  <img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/chess-legend.svg" alt="Legend for the chessboard: each square is a day, and the piece on it says how busy the day was" width="800" />
+</p>
+
+```json
+{ "username": "your-github-login", "preset": "chess" }
+```
+
+| Element                   | Data it encodes                                                                                                                                                                                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Squares                   | One per day of the last year, laid out like GitHub's own graph: a column per week and a row per weekday, with Sunday furthest from the camera and the oldest week on the left                                                           |
+| Piece on a square         | How busy the day was: pawn, knight, rook, queen or king. A busier day gets a taller, stronger green piece. Pieces are ranked by quartile of your own active days, so they show how a day compares with your other days, not a raw count |
+| King                      | The busiest day or days, and only when they stand clear above the top quartile, so a very even year has none                                                                                                                            |
+| Bare square               | A day with no activity                                                                                                                                                                                                                  |
+| Checker pattern and board | Decoration only                                                                                                                                                                                                                         |
+
+A few things worth knowing:
+
+- Everything is solid: the board and the pieces are lit 3D meshes, with no glow. The particles in
+  this preset give off no light. There is one per day so the viewer can explain a day on hover, and
+  the rest exist so that presets can morph into one another.
+- A year is 53 weeks across, so this is a wide banner (960 × 200 by default). The camera sways from
+  side to side instead of orbiting, which keeps both ends of the board in view.
+
 ## Where the images live
 
 The animation changes every day, and committing a new binary daily would bloat your repository
@@ -242,7 +280,7 @@ anywhere else. Optional parameters:
 | `repo=owner/name`                 | none                 | Repository containing `starforge/metrics.json`      |
 | `user=login`                      | none                 | Shortcut for `repo=login/login` (your profile repo) |
 | `branch=name`                     | `main`               | Branch to read the metrics from                     |
-| `preset=name`                     | `galaxy`             | `galaxy`, `tunnel`, `tree` or `atom`                |
+| `preset=name`                     | `galaxy`             | `galaxy`, `tunnel`, `tree`, `atom` or `chess`       |
 | `particles=n`                     | `12000`              | Particle count (1,000 to 60,000)                    |
 | `seed=n`                          | `1`                  | Changes the scattered dust, not your data           |
 | `bloom`, `exposure`, `brightness` | `0.35`, `1.2`, `0.9` | Lighting                                            |
@@ -256,7 +294,7 @@ All keys except `username` are optional.
 | Key               | Default                                           | Meaning                                                                                                               |
 | ----------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `username`        | required                                          | GitHub login to visualise                                                                                             |
-| `preset`          | `"galaxy"`                                        | `"galaxy"`, `"tunnel"`, `"tree"` or `"atom"`. Output files are named after it, for example `atom.webp`                |
+| `preset`          | `"galaxy"`                                        | `"galaxy"`, `"tunnel"`, `"tree"`, `"atom"` or `"chess"`. Output files are named after it, for example `atom.webp`     |
 | `outputDir`       | `"starforge"`                                     | Where files are written                                                                                               |
 | `format`          | `"webp"`                                          | `"webp"` (small, lossy) or `"apng"` (lossless, large)                                                                 |
 | `width`, `height` | the preset's own size                             | Pixel size: width 32 to 1600, height 32 to 1000                                                                       |
