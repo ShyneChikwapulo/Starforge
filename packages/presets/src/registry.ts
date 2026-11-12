@@ -1,10 +1,11 @@
 import { atomPreset } from './atom';
+import { chessPreset } from './chess';
 import { galaxyPreset } from './galaxy';
 import { treePreset } from './tree';
 import { tunnelPreset } from './tunnel';
 import type { Preset } from './types';
 
-export const PRESET_IDS = ['galaxy', 'tunnel', 'tree', 'atom'] as const;
+export const PRESET_IDS = ['galaxy', 'tunnel', 'tree', 'atom', 'chess'] as const;
 export type PresetId = (typeof PRESET_IDS)[number];
 
 export const presets: Record<PresetId, Preset> = {
@@ -12,6 +13,7 @@ export const presets: Record<PresetId, Preset> = {
   tunnel: tunnelPreset,
   tree: treePreset,
   atom: atomPreset,
+  chess: chessPreset,
 };
 
 /** Look a preset up by id, returning undefined for anything unknown. */
