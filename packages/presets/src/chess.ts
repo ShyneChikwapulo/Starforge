@@ -47,9 +47,9 @@ const NAMES: Record<PieceKind, string> = {
   king: 'King',
 };
 
-const SLAB: Rgb = [0.04, 0.05, 0.07];
-const TILE_A: Rgb = [0.085, 0.105, 0.135];
-const TILE_B: Rgb = [0.06, 0.075, 0.1];
+const SLAB: Rgb = [0.1, 0.13, 0.17];
+const TILE_A: Rgb = [0.12, 0.15, 0.19];
+const TILE_B: Rgb = [0.085, 0.105, 0.135];
 /** Particles in this preset give off no light: the picture is only the lit board and pieces. */
 const NO_LIGHT: Rgb = [0, 0, 0];
 
@@ -219,8 +219,8 @@ export const chessPreset: Preset = {
     'Each square is a day, a week to a column · the stronger the piece, the busier the day: pawn, knight, rook, queen, king · a bare square is a quiet day',
   caption:
     'Board: one square per day · Piece: pawn to king, taller and greener = busier · Empty square: no activity',
-  view: { yaw: 0, pitch: 0.7, distance: 34, fov: Math.PI / 4 },
-  sway: 0.28,
-  size: { width: 800, height: 240 },
+  view: { yaw: 0, pitch: 0.65, distance: 21, fov: Math.PI / 4 },
+  sway: 0.15,
+  size: { width: 960, height: 240 },
   build: buildChess,
 };
