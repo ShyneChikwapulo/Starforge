@@ -2,9 +2,10 @@
  * Renders the chess preset from a metrics file at three moments of its camera sway, to check the
  * board, the pieces and the framing by eye.
  *
- *   pnpm exec tsx scripts/render-chess.ts [metrics.json]
+ *   pnpm exec tsx scripts/render-chess.ts [metrics.json] [width] [height]
  *
- * Uses the sample data when no file is given. Writes .starforge/chess/board.png.
+ * Uses the sample data when no file is given, and the preset's own size when no size is. Writes
+ * .starforge/chess/board.png.
  */
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -18,11 +19,12 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = join(ROOT, '.starforge', 'chess', 'board.png');
 
 async function main(): Promise<void> {
-  const file = process.argv[2];
+  const [file, w, h] = process.argv.slice(2);
   const metrics = file
     ? parseMetrics(JSON.parse(readFileSync(resolve(file), 'utf8')))
     : createSampleMetrics();
-  const { width, height } = chessPreset.size;
+  const width = w ? Number(w) : chessPreset.size.width;
+  const height = h ? Number(h) : chessPreset.size.height;
 
   // Four frames sit at a quarter of the loop apart: the start, one extreme of the sway, the start
   // again, and the other extreme.
@@ -33,7 +35,7 @@ async function main(): Promise<void> {
   shown.forEach((frame, i) => out.set(frame.data, i * width * height * 4));
   await mkdir(dirname(OUTPUT), { recursive: true });
   await writeFile(OUTPUT, encodePng(width, height * shown.length, out));
-  console.log(`wrote ${OUTPUT}`);
+  console.log(`wrote ${OUTPUT} (${width} x ${height} per view)`);
 }
 
 main().catch((error: unknown) => {
