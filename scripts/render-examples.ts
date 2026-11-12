@@ -17,6 +17,8 @@ import { PRESET_IDS, getPreset } from '../packages/presets/src/index';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT_DIR = '.starforge/examples';
 const WIDTH = 480;
+/** Wide banners, like the chessboard, need more pixels to stay readable. */
+const WIDE_WIDTH = 900;
 
 async function main(): Promise<void> {
   const metrics = createSampleMetrics();
@@ -24,12 +26,13 @@ async function main(): Promise<void> {
 
   for (const id of PRESET_IDS) {
     const { size } = getPreset(id)!;
+    const width = size.width / size.height > 3 ? WIDE_WIDTH : WIDTH;
     const config = parseConfig({
       username: 'sample-user',
       preset: id,
       outputDir: OUTPUT_DIR,
-      width: WIDTH,
-      height: Math.round((WIDTH * size.height) / size.width),
+      width,
+      height: Math.round((width * size.height) / size.width),
       frames: 48,
       fps: 16,
       quality: 70,
