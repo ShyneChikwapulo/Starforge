@@ -14,6 +14,17 @@ The 3D text is built from glyph outlines baked from Inter SemiBold 4.1.
   built from the outlines (`packages/presets/src/text-font-data.ts`). `scripts/bake-text-font.ts`
   rebuilds that file from the original font.
 
+## Rajdhani (font)
+
+The profile card's text is drawn from glyph outlines baked from Rajdhani SemiBold.
+
+- Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com)
+- Licensed under the SIL Open Font License, Version 1.1. The full text is in
+  [`licenses/Rajdhani-OFL-1.1.txt`](licenses/Rajdhani-OFL-1.1.txt).
+- Starforge does not distribute a font: the card draws the letters as vector outlines, and the
+  outlines are stored in `packages/exporters/src/card-font-data.ts`. `scripts/bake-card-font.ts`
+  rebuilds that file from the original font.
+
 ## Stylized Tree (3D model)
 
 ["Stylized Tree"](https://sketchfab.com/3d-models/stylized-tree-2a00182b3ca4403da3f9e157184e4b42)
