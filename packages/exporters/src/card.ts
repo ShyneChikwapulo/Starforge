@@ -16,7 +16,8 @@ const MUTED = '#a8a56a';
 const FONT = "Rajdhani, Orbitron, 'Share Tech Mono', 'Segoe UI', Helvetica, Arial, sans-serif";
 const VIEW_WIDTH = 800;
 const VIEW_HEIGHT = 500;
-const DIAL_RADIUS = 38;
+const DIAL_RADIUS = 34;
+const TICK_RADIUS = 43;
 
 export interface CardOptions {
   /** Pixel width. The height follows the card's 8:5 shape. Default 800. */
@@ -36,8 +37,20 @@ const formatNumber = (value: number): string =>
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
+const plural = (count: number, one: string, many: string): string => (count === 1 ? one : many);
+
 const fit = (value: string, max: number): string =>
   value.length > max ? `${value.slice(0, max - 1)}…` : value;
+
+/**
+ * The name to show and the size to draw it at, so it fits in `maxWidth`. Letters are roughly 0.62
+ * of the size wide, plus 3 units of letter spacing.
+ */
+export function fitName(name: string, maxWidth: number): { text: string; size: number } {
+  const text = fit(name, 24);
+  const size = Math.floor((maxWidth / Math.max(text.length, 1) - 3) / 0.62);
+  return { text, size: Math.max(20, Math.min(38, size)) };
+}
 
 interface Cuts {
   tl?: number;
@@ -103,11 +116,34 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
     `<rect class="pulse" x="44" y="8" width="170" height="5" fill="${YELLOW}" filter="url(#glow)"/>`,
   );
 
-  // Header: the name in neon, and three chips.
-  const name = fit((user.name ?? user.login).toUpperCase(), 15);
+  // Header: three chips along the right, and the name in the space they leave.
+  const chips = [
+    `${formatNumber(user.followers)} ${plural(user.followers, 'FOLLOWER', 'FOLLOWERS')}`,
+    `${formatNumber(totals.repositories)} ${plural(totals.repositories, 'REPO', 'REPOS')}`,
+    `SINCE ${new Date(user.createdAt).getUTCFullYear()}`,
+  ];
+  const chipWidths = chips.map((chip) => Math.round(chip.length * 7.4 + 24));
+  const gap = 8;
+  const chipsStart = 770 - chipWidths.reduce((sum, w) => sum + w, 0) - gap * (chips.length - 1);
+  let chipX = chipsStart;
+  chips.forEach((chip, i) => {
+    const w = chipWidths[i]!;
+    parts.push(
+      `<path d="${panel(chipX, 50, w, 30, { tl: 8, br: 8 })}" fill="${YELLOW}"/>`,
+      text(chipX + w / 2, 69, escapeXml(chip), {
+        size: 10,
+        fill: BG,
+        weight: 700,
+        spacing: 1,
+        anchor: 'middle',
+      }),
+    );
+    chipX += w + gap;
+  });
+  const name = fitName((user.name ?? user.login).toUpperCase(), chipsStart - 46 - 16);
   parts.push(
-    text(46, 78, escapeXml(name), {
-      size: 38,
+    text(46, 40 + name.size, escapeXml(name.text), {
+      size: name.size,
       fill: YELLOW,
       weight: 700,
       spacing: 3,
@@ -118,26 +154,6 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
       fill: MUTED,
       spacing: 4,
     }),
-  );
-  const chips = [
-    `${formatNumber(user.followers)} FOLLOWERS`,
-    `${formatNumber(totals.repositories)} REPOS`,
-    `SINCE ${new Date(user.createdAt).getUTCFullYear()}`,
-  ];
-  chips.forEach((chip, i) => {
-    const x = 462 + i * 108;
-    parts.push(
-      `<path d="${panel(x, 50, 100, 30, { tl: 8, br: 8 })}" fill="${YELLOW}"/>`,
-      text(x + 50, 69, escapeXml(chip), {
-        size: 10.5,
-        fill: BG,
-        weight: 700,
-        spacing: 1,
-        anchor: 'middle',
-      }),
-    );
-  });
-  parts.push(
     `<line x1="30" y1="124" x2="770" y2="124" stroke="${YELLOW}" stroke-opacity="0.25" stroke-dasharray="2 6"/>`,
   );
 
@@ -189,18 +205,18 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
     { label: 'PULL REQUEST REVIEWS', value: formatNumber(contributions.reviews) },
   ];
   headline.forEach((item, i) => {
-    const top = 160 + i * 66;
+    const top = 156 + i * 64;
     parts.push(
-      text(290, top + 22, item.label, label),
-      text(290, top + 56, item.value, { size: 34, weight: 600 }),
+      text(290, top + 20, item.label, label),
+      text(290, top + 54, item.value, { size: 34, weight: 600 }),
     );
     if (item.note) {
       parts.push(
-        text(540, top + 56, item.note, { size: 11, fill: MUTED, spacing: 1, anchor: 'end' }),
+        text(540, top + 54, item.note, { size: 11, fill: MUTED, spacing: 1, anchor: 'end' }),
       );
     }
     if (i < headline.length - 1) {
-      const y = top + 66;
+      const y = top + 64;
       parts.push(
         `<line x1="262" y1="${y}" x2="558" y2="${y}" stroke="${YELLOW}" stroke-opacity="0.3" stroke-dasharray="4 4"/>`,
         `<polygon points="262,${y - 5} 271,${y} 262,${y + 5}" fill="${YELLOW}"/>`,
@@ -213,17 +229,17 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
   parts.push(
     `<path d="${panel(578, 140, 192, 140, { tr: 20 })}" fill="${PANEL}" stroke="${YELLOW}" stroke-opacity="0.5"/>`,
     text(594, 162, 'MERGE RATE', label),
-    `<circle cx="674" cy="222" r="48" fill="none" stroke="${YELLOW}" stroke-opacity="0.35" stroke-width="4" stroke-dasharray="1.5 6.52"/>`,
-    `<circle cx="674" cy="222" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-opacity="0.2" stroke-width="6"/>`,
-    `<circle class="${rate === null ? '' : 'sweep'}" cx="674" cy="222" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-width="6" stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 674 222)" filter="url(#glow)"/>`,
-    text(674, 230, rate === null ? '—' : `${Math.round(rate * 100)}%`, {
-      size: 22,
+    `<circle cx="674" cy="218" r="${TICK_RADIUS}" fill="none" stroke="${YELLOW}" stroke-opacity="0.35" stroke-width="4" stroke-dasharray="1.5 6.5"/>`,
+    `<circle cx="674" cy="218" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-opacity="0.2" stroke-width="6"/>`,
+    `<circle class="${rate === null ? '' : 'sweep'}" cx="674" cy="218" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-width="6" stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 674 218)" filter="url(#glow)"/>`,
+    text(674, 226, rate === null ? '—' : `${Math.round(rate * 100)}%`, {
+      size: 20,
       weight: 600,
       anchor: 'middle',
     }),
     text(
       674,
-      272,
+      273,
       stats ? `${formatNumber(stats.merged)} OF ${formatNumber(stats.opened)} PRS` : 'NO PR DATA',
       {
         size: 10,
@@ -240,8 +256,12 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
   parts.push(
     `<path d="${panel(578, 292, 192, 130, { bl: 20 })}" fill="${PANEL}" stroke="${YELLOW}" stroke-opacity="0.5"/>`,
     text(594, 314, 'CURRENT STREAK', label),
-    `<text x="594" y="352" font-size="34" font-weight="600" fill="${WHITE}">${streaks.current}<tspan font-size="12" fill="${MUTED}" dx="8" letter-spacing="2">DAYS</tspan></text>`,
-    text(594, 372, `LONGEST ${streaks.longest} DAYS`, { size: 10, fill: MUTED, spacing: 1 }),
+    `<text x="594" y="352" font-size="34" font-weight="600" fill="${WHITE}">${streaks.current}<tspan font-size="12" fill="${MUTED}" dx="8" letter-spacing="2">${plural(streaks.current, 'DAY', 'DAYS')}</tspan></text>`,
+    text(594, 372, `LONGEST ${streaks.longest} ${plural(streaks.longest, 'DAY', 'DAYS')}`, {
+      size: 10,
+      fill: MUTED,
+      spacing: 1,
+    }),
   );
   recent.forEach((day, i) => {
     const barHeight = 3 + (19 * day.count) / peak;
@@ -269,7 +289,7 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
     parts.push(
       text(52, 451, project.tag, { size: 9, fill: YELLOW, spacing: 3 }),
       text(52, 466, escapeXml(fit(project.name, 30)), { size: 14, weight: 600 }),
-      text(752, 458, `${formatNumber(project.stars)} STARS`, {
+      text(752, 458, `${formatNumber(project.stars)} ${plural(project.stars, 'STAR', 'STARS')}`, {
         size: 12,
         fill: MUTED,
         spacing: 2,
@@ -311,7 +331,10 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
     }),
   );
 
-  const title = `GitHub profile card for ${user.login}: ${formatNumber(totals.stars)} stars and ${formatNumber(contributions.commits)} commits in the last year`;
+  const title =
+    `GitHub profile card for ${user.login}: ` +
+    `${formatNumber(totals.stars)} ${plural(totals.stars, 'star', 'stars')} and ` +
+    `${formatNumber(contributions.commits)} ${plural(contributions.commits, 'commit', 'commits')} in the last year`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}" role="img" aria-labelledby="card-title" font-family="${FONT}">
 <title id="card-title">${escapeXml(title)}</title>
 <defs>

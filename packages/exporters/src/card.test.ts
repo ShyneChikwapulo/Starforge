@@ -1,6 +1,6 @@
 import { createSampleMetrics, type Metrics } from '@starforge/github-data';
 import { describe, expect, it } from 'vitest';
-import { renderCardSvg } from './card';
+import { fitName, renderCardSvg } from './card';
 
 const sample = createSampleMetrics();
 
@@ -46,7 +46,7 @@ describe('renderCardSvg', () => {
   it('shortens a long name with an ellipsis', () => {
     const svg = renderCardSvg(withUser({ name: 'A'.repeat(40) }));
     expect(svg).toContain('…');
-    expect(svg).not.toContain('A'.repeat(20));
+    expect(svg).not.toContain('A'.repeat(30));
   });
 
   it('shows a dash instead of pull request numbers it does not have', () => {
@@ -58,7 +58,7 @@ describe('renderCardSvg', () => {
 
   it('sets the dial from the merge rate', () => {
     const svg = renderCardSvg(withStats({ opened: 10, merged: 5, mergedAllTime: 7 }));
-    const circumference = 2 * Math.PI * 38;
+    const circumference = 2 * Math.PI * 34;
     expect(svg).toContain('50%');
     expect(svg).toContain(`stroke-dashoffset="${(circumference * 0.5).toFixed(2)}"`);
     expect(svg).toContain('class="sweep"');
@@ -94,5 +94,48 @@ describe('renderCardSvg', () => {
     const svg = renderCardSvg(quiet);
     expect(svg).toContain('NO LANGUAGE DATA');
     expect(svg).not.toContain('NaN');
+  });
+});
+
+describe('fitName', () => {
+  it('draws a short name at full size', () => {
+    expect(fitName('SHINE', 400).size).toBe(38);
+  });
+
+  it('shrinks a longer name so it fits the room it has', () => {
+    const { text, size } = fitName('SHINE CHIKWAPULO', 400);
+    expect(size).toBeLessThan(38);
+    expect(text.length * (0.62 * size + 3)).toBeLessThanOrEqual(400);
+  });
+
+  it('never gets smaller with a longer name', () => {
+    let previous = Infinity;
+    for (let length = 1; length <= 30; length++) {
+      const { size } = fitName('N'.repeat(length), 400);
+      expect(size).toBeLessThanOrEqual(previous);
+      previous = size;
+    }
+  });
+
+  it('cuts a very long name short, and keeps a readable size', () => {
+    const { text, size } = fitName('N'.repeat(60), 400);
+    expect(text.endsWith('…')).toBe(true);
+    expect(size).toBeGreaterThanOrEqual(20);
+  });
+});
+
+describe('renderCardSvg wording', () => {
+  it('writes one star in the singular', () => {
+    const svg = renderCardSvg({
+      ...sample,
+      highlights: null,
+      repositories: [{ ...sample.repositories[0]!, stars: 1 }],
+    });
+    expect(svg).toContain('1 STAR</text>');
+    expect(svg).not.toContain('1 STARS');
+  });
+
+  it('writes one follower in the singular', () => {
+    expect(renderCardSvg(withUser({ followers: 1 }))).toContain('1 FOLLOWER<');
   });
 });
