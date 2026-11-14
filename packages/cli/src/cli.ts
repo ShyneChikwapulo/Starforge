@@ -40,6 +40,7 @@ async function main(): Promise<void> {
     console.log(`Wrote ${variant.poster}`);
     if (variant.legend) console.log(`Wrote ${variant.legend}`);
   }
+  if (result.card) console.log(`Wrote ${result.card}`);
   if (result.metrics) console.log(`Metrics snapshot: ${result.metrics}`);
   if (process.env.GITHUB_OUTPUT) {
     await appendFile(process.env.GITHUB_OUTPUT, formatStepOutputs(result));
