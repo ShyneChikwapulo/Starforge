@@ -26,6 +26,14 @@ export const ConfigSchema = z
     legend: z.boolean().default(true),
     /** Also write card.svg, a neon HUD profile card with your headline numbers. */
     card: z.boolean().default(false),
+    /** Also write hero.svg, a large neon HUD banner and profile card in one. */
+    hero: z.boolean().default(false),
+    /**
+     * A folder, relative to the working directory, holding the hero card's animated character:
+     * a horizontal strip `sprite.webp` (or `sprite.png`) and a `meta.json`. Left out, the card
+     * has no character.
+     */
+    heroCharacter: z.string().min(1).optional(),
     /**
      * "dark" is the original look. "light" is drawn for white pages. "both" writes the dark set
      * and a second set named with "-light", so a README can pick one with a <picture> element.
