@@ -300,27 +300,28 @@ With no `repo` or `user` it shows sample data.
 
 All keys except `username` are optional.
 
-| Key               | Default                                           | Meaning                                                                                                                   |
-| ----------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `username`        | required                                          | GitHub login to visualise                                                                                                 |
-| `preset`          | `"galaxy"`                                        | `"galaxy"`, `"tunnel"`, `"tree"`, `"atom"` or `"chess"`. Output files are named after it, for example `atom.webp`         |
-| `outputDir`       | `"starforge"`                                     | Where files are written                                                                                                   |
-| `format`          | `"webp"`                                          | `"webp"` (small, lossy) or `"apng"` (lossless, large)                                                                     |
-| `width`, `height` | the preset's own size                             | Pixel size: width 32 to 1600, height 32 to 1000                                                                           |
-| `frames`, `fps`   | `60`, `15`                                        | Loop length (2 to 240 frames) and speed (1 to 60)                                                                         |
-| `quality`         | `80`                                              | Lossy WebP quality, 0 to 100                                                                                              |
-| `bloom`           | `0.9`                                             | Glow strength, 0 to 3; `0` turns it off. Solid parts (the tree's wood, the atom's balls) never glow                       |
-| `seed`            | `1`                                               | Changes the scattered dust, not your data                                                                                 |
-| `legend`          | `true`                                            | Also write `<preset>-legend.svg`, a caption strip that spells out the data                                                |
-| `card`            | `false`                                           | Also write `card.svg`, a neon HUD profile card (see [Profile card](#profile-card))                                        |
-| `theme`           | `"dark"`                                          | `"dark"`, `"light"` or `"both"`. `both` also writes a second set named with `-light`, drawn for white pages               |
-| `background`      | navy for a plain `dark` run, `"github"` otherwise | `"github"`, `"transparent"`, or a page colour such as `"#0d1117"` (see [Light and dark pages](#light-and-dark-pages))     |
-| `hero`            | `false`                                           | Also write `hero.svg`, a large neon HUD banner and profile card (see [Hero card](#hero-card))                             |
-| `heroCharacter`   | none                                              | A folder with `sprite.webp` and `meta.json`: the hero card's animated character                                           |
-| `presetCard`      | `false`                                           | Also write `<preset>-card.svg`, the animation inside a neon HUD card (see [Preset cards](#preset-cards))                  |
-| `page`            | `false`                                           | Draw the hero and preset cards as pieces of one stacked page, and also write `footer.svg` (see [Page theme](#page-theme)) |
-| `divider`         | none                                              | With `page`: also write `divider.svg`, a section heading with this title                                                  |
-| `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                      |
+| Key               | Default                                           | Meaning                                                                                                                         |
+| ----------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `username`        | required                                          | GitHub login to visualise                                                                                                       |
+| `preset`          | `"galaxy"`                                        | `"galaxy"`, `"tunnel"`, `"tree"`, `"atom"` or `"chess"`. Output files are named after it, for example `atom.webp`               |
+| `outputDir`       | `"starforge"`                                     | Where files are written                                                                                                         |
+| `format`          | `"webp"`                                          | `"webp"` (small, lossy) or `"apng"` (lossless, large)                                                                           |
+| `width`, `height` | the preset's own size                             | Pixel size: width 32 to 1600, height 32 to 1000                                                                                 |
+| `frames`, `fps`   | `60`, `15`                                        | Loop length (2 to 240 frames) and speed (1 to 60)                                                                               |
+| `quality`         | `80`                                              | Lossy WebP quality, 0 to 100                                                                                                    |
+| `bloom`           | `0.9`                                             | Glow strength, 0 to 3; `0` turns it off. Solid parts (the tree's wood, the atom's balls) never glow                             |
+| `seed`            | `1`                                               | Changes the scattered dust, not your data                                                                                       |
+| `legend`          | `true`                                            | Also write `<preset>-legend.svg`, a caption strip that spells out the data                                                      |
+| `card`            | `false`                                           | Also write `card.svg`, a neon HUD profile card (see [Profile card](#profile-card))                                              |
+| `theme`           | `"dark"`                                          | `"dark"`, `"light"` or `"both"`. `both` also writes a second set named with `-light`, drawn for white pages                     |
+| `background`      | navy for a plain `dark` run, `"github"` otherwise | `"github"`, `"transparent"`, or a page colour such as `"#0d1117"` (see [Light and dark pages](#light-and-dark-pages))           |
+| `hero`            | `false`                                           | Also write `hero.svg`, a large neon HUD banner and profile card (see [Hero card](#hero-card))                                   |
+| `heroCharacter`   | none                                              | A folder with `sprite.webp` and `meta.json`: the hero card's animated character                                                 |
+| `presetCard`      | `false`                                           | Also write `<preset>-card.svg`, the animation inside a neon HUD card (see [Preset cards](#preset-cards))                        |
+| `page`            | `false`                                           | Draw the hero and preset cards as pieces of one stacked page, and also write `footer.svg` (see [Page theme](#page-theme))       |
+| `divider`         | none                                              | With `page`: also write `divider.svg`, a section heading with this title                                                        |
+| `presets`         | none                                              | Several presets in one run, such as `["galaxy", "tree"]`; takes the place of `preset` (see [Several presets](#several-presets)) |
+| `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                            |
 
 Smaller files are mostly a matter of size and length: the previews in the [gallery](#gallery) are
 480 pixels wide, 48 frames at 16 fps, quality 70.
@@ -489,7 +490,70 @@ A few things worth knowing:
   every 60 units, which is what lets pieces join in any order.
 - The page is dark, so `page` works with `theme` set to `"dark"` or `"both"` but not `"light"`.
 - The compact profile card (`card`) is a separate 800 × 500 card and is not part of the page.
-- One run draws one preset, so a page with several presets needs one run per preset.
+- To draw several presets in one run, set `presets` (see [Several presets](#several-presets)).
+
+## Several presets
+
+One run can draw several presets. List them in `presets`:
+
+```json
+{
+  "username": "your-github-login",
+  "presets": ["galaxy", "tree", "atom"],
+  "hero": true,
+  "presetCard": true,
+  "page": true,
+  "divider": "Presets"
+}
+```
+
+The data is collected once and every preset is drawn from it, with the same look. Each preset keeps
+its own file names (`galaxy.webp`, `tree-card.svg`, `atom-legend.svg` and so on), and the shared
+pieces (`hero.svg`, `card.svg`, `divider.svg`, `footer.svg`) are written once. The Action publishes
+every file in one push, so the whole set lands on your assets branch together, and a page is just
+the pieces in order:
+
+```html
+<img
+  align="top"
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/hero.svg"
+  width="100%"
+/><br />
+<img
+  align="top"
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/divider.svg"
+  width="100%"
+/><br />
+<img
+  align="top"
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/galaxy-card.svg"
+  width="100%"
+/><br />
+<img
+  align="top"
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/tree-card.svg"
+  width="100%"
+/><br />
+<img
+  align="top"
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/atom-card.svg"
+  width="100%"
+/><br />
+<img
+  align="top"
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/footer.svg"
+  width="100%"
+/>
+```
+
+A few things worth knowing:
+
+- `presets` takes the place of `preset`. If both are set, `preset` is ignored. A preset can be
+  listed once.
+- `width` and `height` apply to every preset. With several presets, leave them out so each one is
+  drawn at its own size.
+- Rendering time adds up. The atom is the slowest preset, so a run with all five takes a few
+  minutes. That is fine for a scheduled run, but not for something you re-run by hand.
 
 ## Light and dark pages
 
