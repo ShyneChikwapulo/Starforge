@@ -315,6 +315,8 @@ All keys except `username` are optional.
 | `card`            | `false`                                           | Also write `card.svg`, a neon HUD profile card (see [Profile card](#profile-card))                                    |
 | `theme`           | `"dark"`                                          | `"dark"`, `"light"` or `"both"`. `both` also writes a second set named with `-light`, drawn for white pages           |
 | `background`      | navy for a plain `dark` run, `"github"` otherwise | `"github"`, `"transparent"`, or a page colour such as `"#0d1117"` (see [Light and dark pages](#light-and-dark-pages)) |
+| `hero`            | `false`                                           | Also write `hero.svg`, a large neon HUD banner and profile card (see [Hero card](#hero-card))                         |
+| `heroCharacter`   | none                                              | A folder with `sprite.webp` and `meta.json`: the hero card's animated character                                       |
 | `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                  |
 
 Smaller files are mostly a matter of size and length: the previews in the [gallery](#gallery) are
@@ -361,6 +363,42 @@ A few things worth knowing:
   still.
 - A section with no data shows a dash. Pull request numbers need a token that can read them, and
   a profile with no pull requests shows "NO PR DATA".
+
+## Hero card
+
+A bigger sibling of the profile card: a 4:3 neon HUD that works as a profile README's banner and
+profile card in one. Your name and chips run along the top, your eight biggest languages down the
+left, your headline numbers in the middle, and on the right your streak, your pinned project and
+an animated character standing in front of slowly turning rings.
+
+```json
+{ "username": "your-github-login", "hero": true, "heroCharacter": "assets/character" }
+```
+
+The Action publishes `hero.svg` next to the other images. Embed it full width:
+
+```html
+<img
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/hero.svg"
+  alt="My GitHub profile"
+  width="100%"
+/>
+```
+
+The character is yours to bring: Starforge ships none. `heroCharacter` is a folder in your
+repository holding `sprite.webp` (or `sprite.png`), a horizontal strip of equally sized frames,
+and a `meta.json` such as `{ "width": 380, "height": 500, "frames": 30, "fps": 8 }`. The card plays
+the strip with a plain CSS animation, forwards and then back, so it loops without a seam and
+animates on GitHub. Leave `heroCharacter` out and the card has no character. Frames are drawn at
+380 × 500 to fill the slot.
+
+To make a strip from a rigged glTF/GLB model with an idle animation, use the scripts in
+[`scripts/`](scripts): `extract-gltf-textures.py`, `bake-character.ts` and `build-sprite.py` (their
+headers show the commands). Check the licence of any model you use: its terms decide whether you
+may publish renders of it. Nothing from your model is stored in Starforge.
+
+As with the profile card, the text is drawn as vector outlines, the animation is plain CSS, and a
+viewer that prefers reduced motion sees the card still.
 
 ## Light and dark pages
 
