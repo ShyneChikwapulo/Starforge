@@ -12,6 +12,7 @@ export function formatStepOutputs(result: GenerateResult): string {
     ...result.variants.flatMap((variant) => [variant.animation, variant.poster, variant.legend]),
     result.card,
     result.hero,
+    result.presetCard,
   ]
     .filter((path): path is string => Boolean(path))
     .map((path) => basename(path));
