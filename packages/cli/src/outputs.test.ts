@@ -62,3 +62,11 @@ describe('formatStepOutputs', () => {
     );
   });
 });
+
+describe('formatStepOutputs with a card', () => {
+  it('lists the card after the variants, so one publish keeps it', () => {
+    expect(formatStepOutputs({ ...result, card: '/out/card.svg' })).toBe(
+      'directory=/out\nfiles=galaxy.webp galaxy-poster.png galaxy-legend.svg card.svg\n',
+    );
+  });
+});

@@ -24,6 +24,8 @@ export const ConfigSchema = z
     saveMetrics: z.boolean().default(true),
     /** Also write <preset>-legend.svg, a caption strip that spells out the data. */
     legend: z.boolean().default(true),
+    /** Also write card.svg, a neon HUD profile card with your headline numbers. */
+    card: z.boolean().default(false),
     /**
      * "dark" is the original look. "light" is drawn for white pages. "both" writes the dark set
      * and a second set named with "-light", so a README can pick one with a <picture> element.

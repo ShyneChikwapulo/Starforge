@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { getPreset } from '@starforge/presets';
-import { renderLegendSvg } from '@starforge/exporters';
+import { renderCardSvg, renderLegendSvg } from '@starforge/exporters';
 import { join, resolve } from 'node:path';
 import { encodeApng, encodePng, encodeWebp, renderLoops } from '@starforge/exporters';
 import { collectMetrics, createGraphQLClient, type Metrics } from '@starforge/github-data';
@@ -36,6 +36,8 @@ export interface GenerateResult {
   poster: string;
   /** Present when `saveMetrics` is enabled. */
   metrics?: string;
+  /** Present when `card` is enabled. */
+  card?: string;
   /** Present when `legend` is enabled. */
   legend?: string;
   animationBytes: number;
@@ -141,12 +143,19 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     await writeMetricsSnapshot(metricsPath, metrics);
   }
 
+  let cardPath: string | undefined;
+  if (config.card) {
+    cardPath = join(directory, 'card.svg');
+    await writeFile(cardPath, renderCardSvg(metrics));
+  }
+
   const first = variants[0]!;
   return {
     directory,
     animation: first.animation,
     poster: first.poster,
     metrics: metricsPath,
+    card: cardPath,
     legend: first.legend,
     animationBytes: first.animationBytes,
     variants,

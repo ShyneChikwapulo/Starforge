@@ -7,10 +7,12 @@
  * It writes <preset>.webp and <preset>-legend.svg for every preset into .starforge/examples and
  * prints the command that publishes them to the `examples` branch, which the README links to.
  */
-import { dirname, resolve } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseConfig } from '../packages/cli/src/config';
 import { generate } from '../packages/cli/src/generate';
+import { renderCardSvg } from '../packages/exporters/src/index';
 import { createSampleMetrics } from '../packages/github-data/src/index';
 import { PRESET_IDS, getPreset } from '../packages/presets/src/index';
 
@@ -45,6 +47,11 @@ async function main(): Promise<void> {
       `${id}: ${(result.animationBytes / 1_000_000).toFixed(2)} MB in ${((Date.now() - started) / 1000).toFixed(1)}s`,
     );
   }
+
+  // The profile card is a flat SVG, so it is drawn straight from the sample data.
+  await mkdir(join(ROOT, OUTPUT_DIR), { recursive: true });
+  await writeFile(join(ROOT, OUTPUT_DIR, 'card.svg'), renderCardSvg(metrics));
+  files.push('card.svg');
 
   console.log('\nPublish them to the examples branch with:\n');
   console.log(

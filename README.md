@@ -55,6 +55,15 @@ config. Click an image to jump to its documentation, or open it in 3D.
       A solid chessboard of your year: a square per day, and the busier the day, the stronger the piece
     </td>
   </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <a href="#profile-card"><img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/card.svg" alt="A neon HUD profile card: languages, stars, commits, pull requests, merge rate and streak" width="640" /></a>
+      <br />
+      <b><a href="#profile-card">Profile card</a></b>
+      <br />
+      A neon HUD card with your headline numbers, to sit beside any of the presets
+    </td>
+  </tr>
 </table>
 
 These previews are rendered from built-in sample data, so you can reproduce them without a token
@@ -303,12 +312,55 @@ All keys except `username` are optional.
 | `bloom`           | `0.9`                                             | Glow strength, 0 to 3; `0` turns it off. Solid parts (the tree's wood, the atom's balls) never glow                   |
 | `seed`            | `1`                                               | Changes the scattered dust, not your data                                                                             |
 | `legend`          | `true`                                            | Also write `<preset>-legend.svg`, a caption strip that spells out the data                                            |
+| `card`            | `false`                                           | Also write `card.svg`, a neon HUD profile card (see [Profile card](#profile-card))                                    |
 | `theme`           | `"dark"`                                          | `"dark"`, `"light"` or `"both"`. `both` also writes a second set named with `-light`, drawn for white pages           |
 | `background`      | navy for a plain `dark` run, `"github"` otherwise | `"github"`, `"transparent"`, or a page colour such as `"#0d1117"` (see [Light and dark pages](#light-and-dark-pages)) |
 | `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                  |
 
 Smaller files are mostly a matter of size and length: the previews in the [gallery](#gallery) are
 480 pixels wide, 48 frames at 16 fps, quality 70.
+
+## Profile card
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/card.svg" alt="A neon HUD profile card built from sample GitHub activity" width="640" />
+</p>
+
+Besides the 3D presets, Starforge can draw a flat profile card with your headline numbers. Turn it on
+in `starforge.config.json`:
+
+```json
+{ "username": "your-github-login", "preset": "atom", "card": true }
+```
+
+The Action then publishes `card.svg` next to the other images, and you embed it the same way:
+
+```html
+<img
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/card.svg"
+  alt="My GitHub profile card"
+  width="640"
+/>
+```
+
+| Part of the card | What it shows                                                                          |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| Header           | Your name and login, with your followers, repositories and the year you joined         |
+| Languages        | Your five biggest languages, with their share of your code                             |
+| Main panel       | Stars earned, commits in the last year, pull requests merged and reviews               |
+| Merge rate       | The share of the pull requests you opened that were merged, as a dial                  |
+| Streak           | Your current and longest streak of active days, and the last two weeks as bars         |
+| Bottom bar       | Your first pinned project, or your most starred one, and the last 12 weeks of activity |
+
+A few things worth knowing:
+
+- The card has its own dark background, so it reads on a light or a dark page, whatever `theme` the
+  other images use.
+- Its text is drawn as vector outlines, so it looks the same on every machine and needs no
+  font. The dial sweeps in and the neon edges pulse; a viewer that prefers reduced motion sees it
+  still.
+- A section with no data shows a dash. Pull request numbers need a token that can read them, and
+  a profile with no pull requests shows "NO PR DATA".
 
 ## Light and dark pages
 
@@ -408,6 +460,12 @@ Starforge's 3D text is built from glyph outlines baked from
 this repository (`packages/presets/src/text-font-data.ts`); `scripts/bake-text-font.ts` rebuilds
 them. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) lists every third-party work in this
 repository.
+
+The profile card's text is drawn from outlines baked from
+[Rajdhani](https://fonts.google.com/specimen/Rajdhani) SemiBold by Indian Type Foundry, licensed
+under the [SIL Open Font License 1.1](licenses/Rajdhani-OFL-1.1.txt). Only the baked outlines are
+in this repository (`packages/exporters/src/card-font-data.ts`); `scripts/bake-card-font.ts`
+rebuilds them.
 
 ## License
 
