@@ -2,9 +2,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { getPreset } from '@starforge/presets';
 import {
   renderCardSvg,
+  renderFooterSvg,
   renderHeroSvg,
   renderLegendSvg,
   renderPresetCardSvg,
+  renderSectionSvg,
 } from '@starforge/exporters';
 import { join, resolve } from 'node:path';
 import { encodeApng, encodePng, encodeWebp, renderLoops } from '@starforge/exporters';
@@ -48,6 +50,10 @@ export interface GenerateResult {
   hero?: string;
   /** Present when `presetCard` is enabled. */
   presetCard?: string;
+  /** Present when `page` is enabled and a `divider` title is set. */
+  divider?: string;
+  /** Present when `page` is enabled. */
+  footer?: string;
   /** Present when `legend` is enabled. */
   legend?: string;
   animationBytes: number;
@@ -165,7 +171,21 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       ? await loadHeroCharacter(resolve(options.cwd ?? process.cwd(), config.heroCharacter))
       : undefined;
     heroPath = join(directory, 'hero.svg');
-    await writeFile(heroPath, renderHeroSvg(metrics, { character }));
+    await writeFile(
+      heroPath,
+      renderHeroSvg(metrics, { character, stack: config.page ? 'top' : undefined }),
+    );
+  }
+
+  let footerPath: string | undefined;
+  let dividerPath: string | undefined;
+  if (config.page) {
+    footerPath = join(directory, 'footer.svg');
+    await writeFile(footerPath, renderFooterSvg(metrics));
+    if (config.divider) {
+      dividerPath = join(directory, 'divider.svg');
+      await writeFile(dividerPath, renderSectionSvg(config.divider));
+    }
   }
 
   let presetCardPath: string | undefined;
@@ -177,6 +197,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     await writeFile(
       presetCardPath,
       renderPresetCardSvg(metrics, {
+        stack: config.page ? 'none' : undefined,
         preset,
         media: { href: `data:${type};base64,${animation.toString('base64')}`, width, height },
       }),
@@ -192,6 +213,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     card: cardPath,
     hero: heroPath,
     presetCard: presetCardPath,
+    divider: dividerPath,
+    footer: footerPath,
     legend: first.legend,
     animationBytes: first.animationBytes,
     variants,
