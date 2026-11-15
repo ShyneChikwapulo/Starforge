@@ -35,19 +35,25 @@ async function main(): Promise<void> {
   const started = Date.now();
   const result = await generate({ config, metrics, token: process.env.GITHUB_TOKEN, cwd });
 
-  for (const variant of result.variants) {
-    console.log(`Wrote ${variant.animation}`);
-    console.log(`Wrote ${variant.poster}`);
-    if (variant.legend) console.log(`Wrote ${variant.legend}`);
+  for (const preset of result.presets) {
+    for (const variant of preset.variants) {
+      console.log(`Wrote ${variant.animation}`);
+      console.log(`Wrote ${variant.poster}`);
+      if (variant.legend) console.log(`Wrote ${variant.legend}`);
+    }
+    if (preset.presetCard) console.log(`Wrote ${preset.presetCard}`);
   }
-  if (result.card) console.log(`Wrote ${result.card}`);
+  for (const file of [result.card, result.hero, result.divider, result.footer]) {
+    if (file) console.log(`Wrote ${file}`);
+  }
   if (result.metrics) console.log(`Metrics snapshot: ${result.metrics}`);
   if (process.env.GITHUB_OUTPUT) {
     await appendFile(process.env.GITHUB_OUTPUT, formatStepOutputs(result));
   }
-  const megabytes = result.variants.reduce((sum, v) => sum + v.animationBytes, 0) / 1_000_000;
+  const animations = result.presets.flatMap((preset) => preset.variants);
+  const megabytes = animations.reduce((sum, v) => sum + v.animationBytes, 0) / 1_000_000;
   console.log(
-    `${megabytes.toFixed(2)} MB ${result.variants.length > 1 ? 'of animations' : 'animation'}, ` +
+    `${megabytes.toFixed(2)} MB ${animations.length > 1 ? 'of animations' : 'animation'}, ` +
       `done in ${((Date.now() - started) / 1000).toFixed(1)}s`,
   );
 }

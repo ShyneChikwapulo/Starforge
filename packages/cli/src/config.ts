@@ -7,6 +7,11 @@ export const ConfigSchema = z
     /** GitHub login to visualise. */
     username: z.string().min(1),
     preset: z.enum(PRESET_IDS).default('galaxy'),
+    /**
+     * Several presets in one run: each is drawn from the same data with the same look, and its
+     * files are named after it. Takes the place of `preset`, which is ignored when this is set.
+     */
+    presets: z.array(z.enum(PRESET_IDS)).min(1).optional(),
     /** Where generated files are written, relative to the working directory. */
     outputDir: z.string().min(1).default('starforge'),
     format: z.enum(['webp', 'apng']).default('webp'),
@@ -82,9 +87,18 @@ export const ConfigSchema = z
   .refine((config) => !config.divider || config.page, {
     message: 'divider is a piece of the page, so it needs page: true',
     path: ['divider'],
+  })
+  .refine((config) => !config.presets || new Set(config.presets).size === config.presets.length, {
+    message: 'presets lists the same preset twice',
+    path: ['presets'],
   });
 
 export type StarforgeConfig = z.infer<typeof ConfigSchema>;
+
+/** The presets a run draws, in order: `presets` if it is set, otherwise just `preset`. */
+export function presetIds(config: StarforgeConfig): StarforgeConfig['preset'][] {
+  return config.presets ?? [config.preset];
+}
 
 export function parseConfig(input: unknown): StarforgeConfig {
   return ConfigSchema.parse(input);

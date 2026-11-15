@@ -1,17 +1,20 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { getPreset } from '@starforge/presets';
+import { join, resolve } from 'node:path';
 import {
+  encodeApng,
+  encodePng,
+  encodeWebp,
   renderCardSvg,
   renderFooterSvg,
   renderHeroSvg,
   renderLegendSvg,
+  renderLoops,
   renderPresetCardSvg,
   renderSectionSvg,
 } from '@starforge/exporters';
-import { join, resolve } from 'node:path';
-import { encodeApng, encodePng, encodeWebp, renderLoops } from '@starforge/exporters';
 import { collectMetrics, createGraphQLClient, type Metrics } from '@starforge/github-data';
-import type { StarforgeConfig } from './config';
+import { getPreset } from '@starforge/presets';
+import { presetIds, type StarforgeConfig } from './config';
 import { loadHeroCharacter } from './hero-character';
 import { resolveLooks, type ThemeName } from './looks';
 
@@ -37,9 +40,18 @@ export interface GeneratedVariant {
   animationBytes: number;
 }
 
+/** The files written for one preset. */
+export interface GeneratedPreset {
+  id: string;
+  /** One variant per theme: two when `theme` is "both", otherwise one. */
+  variants: GeneratedVariant[];
+  /** Present when `presetCard` is enabled. */
+  presetCard?: string;
+}
+
 export interface GenerateResult {
   directory: string;
-  /** The first variant's files. For a single theme, that is everything. */
+  /** The first preset's first variant. For a single preset and theme, that is everything. */
   animation: string;
   poster: string;
   /** Present when `saveMetrics` is enabled. */
@@ -48,7 +60,7 @@ export interface GenerateResult {
   card?: string;
   /** Present when `hero` is enabled. */
   hero?: string;
-  /** Present when `presetCard` is enabled. */
+  /** The first preset's card. Present when `presetCard` is enabled. */
   presetCard?: string;
   /** Present when `page` is enabled and a `divider` title is set. */
   divider?: string;
@@ -57,8 +69,10 @@ export interface GenerateResult {
   /** Present when `legend` is enabled. */
   legend?: string;
   animationBytes: number;
-  /** Every variant written, dark first. Two when `theme` is "both", otherwise one. */
+  /** The first preset's variants, dark first. */
   variants: GeneratedVariant[];
+  /** Every preset written, in the order the config lists them. */
+  presets: GeneratedPreset[];
 }
 
 /**
@@ -78,33 +92,24 @@ async function writeMetricsSnapshot(path: string, metrics: Metrics): Promise<voi
   await writeFile(path, `${JSON.stringify(metrics, null, 2)}\n`);
 }
 
-export async function generate(options: GenerateOptions): Promise<GenerateResult> {
-  const { config } = options;
-
-  let metrics = options.metrics;
-  if (!metrics) {
-    if (!options.token) {
-      throw new Error('GITHUB_TOKEN is required to collect data (or pass saved metrics).');
-    }
-    metrics = await collectMetrics({
-      login: config.username,
-      client: createGraphQLClient({ token: options.token }),
-    });
-  }
-
-  const preset = getPreset(config.preset)!;
+/** Render one preset in every look, and write its files. */
+async function generatePreset(
+  config: StarforgeConfig,
+  id: StarforgeConfig['preset'],
+  metrics: Metrics,
+  looks: ReturnType<typeof resolveLooks>,
+  directory: string,
+  webpBinary: string | undefined,
+): Promise<GeneratedPreset> {
+  const preset = getPreset(id)!;
   const width = config.width ?? preset.size.width;
   const height = config.height ?? preset.size.height;
-  const looks = resolveLooks(config);
   const rendered = renderLoops(
     preset,
     metrics,
     { width, height, frames: config.frames, seed: config.seed },
     looks.map((resolved) => resolved.look),
   );
-
-  const directory = resolve(options.cwd ?? process.cwd(), config.outputDir);
-  await mkdir(directory, { recursive: true });
 
   const variants: GeneratedVariant[] = [];
   for (const [index, resolved] of looks.entries()) {
@@ -119,12 +124,12 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
             frames: rgba,
             fps: config.fps,
             quality: config.quality,
-            binary: options.webpBinary,
+            binary: webpBinary,
           })
         : encodeApng({ width, height, frames: rgba, fps: config.fps });
     const poster = encodePng(width, height, frames[0]!.data);
 
-    const name = `${config.preset}${resolved.suffix}`;
+    const name = `${id}${resolved.suffix}`;
     const animationPath = join(directory, `${name}.${config.format === 'webp' ? 'webp' : 'png'}`);
     const posterPath = join(directory, `${name}-poster.png`);
     await writeFile(animationPath, animation);
@@ -151,6 +156,48 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       legend: legendPath,
       animationBytes: animation.length,
     });
+  }
+
+  let presetCardPath: string | undefined;
+  if (config.presetCard) {
+    const source = variants.find((variant) => variant.theme === 'dark') ?? variants[0]!;
+    const animation = await readFile(source.animation);
+    const type = config.format === 'webp' ? 'image/webp' : 'image/png';
+    presetCardPath = join(directory, `${id}-card.svg`);
+    await writeFile(
+      presetCardPath,
+      renderPresetCardSvg(metrics, {
+        stack: config.page ? 'none' : undefined,
+        preset,
+        media: { href: `data:${type};base64,${animation.toString('base64')}`, width, height },
+      }),
+    );
+  }
+
+  return { id, variants, presetCard: presetCardPath };
+}
+
+export async function generate(options: GenerateOptions): Promise<GenerateResult> {
+  const { config } = options;
+
+  let metrics = options.metrics;
+  if (!metrics) {
+    if (!options.token) {
+      throw new Error('GITHUB_TOKEN is required to collect data (or pass saved metrics).');
+    }
+    metrics = await collectMetrics({
+      login: config.username,
+      client: createGraphQLClient({ token: options.token }),
+    });
+  }
+
+  const looks = resolveLooks(config);
+  const directory = resolve(options.cwd ?? process.cwd(), config.outputDir);
+  await mkdir(directory, { recursive: true });
+
+  const presets: GeneratedPreset[] = [];
+  for (const id of presetIds(config)) {
+    presets.push(await generatePreset(config, id, metrics, looks, directory, options.webpBinary));
   }
 
   let metricsPath: string | undefined;
@@ -188,35 +235,21 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     }
   }
 
-  let presetCardPath: string | undefined;
-  if (config.presetCard) {
-    const source = variants.find((variant) => variant.theme === 'dark') ?? variants[0]!;
-    const animation = await readFile(source.animation);
-    const type = config.format === 'webp' ? 'image/webp' : 'image/png';
-    presetCardPath = join(directory, `${config.preset}-card.svg`);
-    await writeFile(
-      presetCardPath,
-      renderPresetCardSvg(metrics, {
-        stack: config.page ? 'none' : undefined,
-        preset,
-        media: { href: `data:${type};base64,${animation.toString('base64')}`, width, height },
-      }),
-    );
-  }
-
-  const first = variants[0]!;
+  const first = presets[0]!;
+  const firstVariant = first.variants[0]!;
   return {
     directory,
-    animation: first.animation,
-    poster: first.poster,
+    animation: firstVariant.animation,
+    poster: firstVariant.poster,
     metrics: metricsPath,
     card: cardPath,
     hero: heroPath,
-    presetCard: presetCardPath,
+    presetCard: first.presetCard,
     divider: dividerPath,
     footer: footerPath,
-    legend: first.legend,
-    animationBytes: first.animationBytes,
-    variants,
+    legend: firstVariant.legend,
+    animationBytes: firstVariant.animationBytes,
+    variants: first.variants,
+    presets,
   };
 }
