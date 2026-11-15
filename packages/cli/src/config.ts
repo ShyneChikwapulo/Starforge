@@ -37,6 +37,13 @@ export const ConfigSchema = z
     /** Also write <preset>-card.svg: the animation inside a neon HUD card with its legend. */
     presetCard: z.boolean().default(false),
     /**
+     * Draw the hero and preset cards as pieces of one stacked page, with continuous rails instead
+     * of closed frames, and also write footer.svg to finish the stack.
+     */
+    page: z.boolean().default(false),
+    /** With `page`: also write divider.svg, a section heading with this title. */
+    divider: z.string().min(1).optional(),
+    /**
      * "dark" is the original look. "light" is drawn for white pages. "both" writes the dark set
      * and a second set named with "-light", so a README can pick one with a <picture> element.
      */
@@ -67,6 +74,14 @@ export const ConfigSchema = z
   .refine((config) => !config.presetCard || config.theme !== 'light', {
     message: 'presetCard draws on a dark card, so theme must be "dark" or "both"',
     path: ['theme'],
+  })
+  .refine((config) => !config.page || config.theme !== 'light', {
+    message: 'page draws on a dark background, so theme must be "dark" or "both"',
+    path: ['theme'],
+  })
+  .refine((config) => !config.divider || config.page, {
+    message: 'divider is a piece of the page, so it needs page: true',
+    path: ['divider'],
   });
 
 export type StarforgeConfig = z.infer<typeof ConfigSchema>;

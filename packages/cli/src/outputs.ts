@@ -13,6 +13,8 @@ export function formatStepOutputs(result: GenerateResult): string {
     result.card,
     result.hero,
     result.presetCard,
+    result.divider,
+    result.footer,
   ]
     .filter((path): path is string => Boolean(path))
     .map((path) => basename(path));

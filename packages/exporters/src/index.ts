@@ -6,4 +6,6 @@ export * from './legend';
 export * from './card';
 export * from './hero';
 export * from './preset-card';
+export * from './chrome';
+export * from './page-pieces';
 export { measureCardText } from './card-text';
