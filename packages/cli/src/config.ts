@@ -34,6 +34,8 @@ export const ConfigSchema = z
      * has no character.
      */
     heroCharacter: z.string().min(1).optional(),
+    /** Also write <preset>-card.svg: the animation inside a neon HUD card with its legend. */
+    presetCard: z.boolean().default(false),
     /**
      * "dark" is the original look. "light" is drawn for white pages. "both" writes the dark set
      * and a second set named with "-light", so a README can pick one with a <picture> element.
@@ -61,7 +63,11 @@ export const ConfigSchema = z
         'theme "both" paints two sets, so "background" must be "github", "transparent" or left out, not one colour',
       path: ['background'],
     },
-  );
+  )
+  .refine((config) => !config.presetCard || config.theme !== 'light', {
+    message: 'presetCard draws on a dark card, so theme must be "dark" or "both"',
+    path: ['theme'],
+  });
 
 export type StarforgeConfig = z.infer<typeof ConfigSchema>;
 

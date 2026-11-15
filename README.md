@@ -317,6 +317,7 @@ All keys except `username` are optional.
 | `background`      | navy for a plain `dark` run, `"github"` otherwise | `"github"`, `"transparent"`, or a page colour such as `"#0d1117"` (see [Light and dark pages](#light-and-dark-pages)) |
 | `hero`            | `false`                                           | Also write `hero.svg`, a large neon HUD banner and profile card (see [Hero card](#hero-card))                         |
 | `heroCharacter`   | none                                              | A folder with `sprite.webp` and `meta.json`: the hero card's animated character                                       |
+| `presetCard`      | `false`                                           | Also write `<preset>-card.svg`, the animation inside a neon HUD card (see [Preset cards](#preset-cards))              |
 | `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                  |
 
 Smaller files are mostly a matter of size and length: the previews in the [gallery](#gallery) are
@@ -399,6 +400,41 @@ may publish renders of it. Nothing from your model is stored in Starforge.
 
 As with the profile card, the text is drawn as vector outlines, the animation is plain CSS, and a
 viewer that prefers reduced motion sees the card still.
+
+## Preset cards
+
+Any preset can be wrapped in a neon HUD card: a title bar with your headline numbers, the animation
+in a framed window, and the legend as HUD chips, with your languages and your last twelve weeks
+underneath. One file replaces the animation and its legend strip.
+
+```json
+{ "username": "your-github-login", "preset": "atom", "presetCard": true }
+```
+
+The Action publishes `<preset>-card.svg` (here `atom-card.svg`) next to the other images. Embed it
+full width:
+
+```html
+<img
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/atom-card.svg"
+  alt="My GitHub activity as an atom"
+  width="100%"
+/>
+```
+
+A few things worth knowing:
+
+- Wide presets (galaxy, tunnel and chess) put the animation across the card with the legend under
+  it. Square presets (tree and atom) put a legend panel beside it. The layout follows the shape of
+  the animation.
+- Every card is 1200 units wide and as tall as its content, rounded up to a multiple of 60, so
+  cards shown at full width line up and stack neatly.
+- The animation is embedded in the SVG, so the file is a little larger than the animation itself.
+  GitHub plays an animated WebP inside an SVG image.
+- The card has its own dark background, so `presetCard` works with `theme` set to `"dark"` or
+  `"both"` (it uses the dark set) but not `"light"`.
+- As with the other cards, the text is vector outlines and the motion is plain CSS; a viewer that
+  prefers reduced motion sees the chrome still.
 
 ## Light and dark pages
 

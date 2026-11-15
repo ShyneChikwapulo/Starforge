@@ -1,6 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { getPreset } from '@starforge/presets';
-import { renderCardSvg, renderHeroSvg, renderLegendSvg } from '@starforge/exporters';
+import {
+  renderCardSvg,
+  renderHeroSvg,
+  renderLegendSvg,
+  renderPresetCardSvg,
+} from '@starforge/exporters';
 import { join, resolve } from 'node:path';
 import { encodeApng, encodePng, encodeWebp, renderLoops } from '@starforge/exporters';
 import { collectMetrics, createGraphQLClient, type Metrics } from '@starforge/github-data';
@@ -41,6 +46,8 @@ export interface GenerateResult {
   card?: string;
   /** Present when `hero` is enabled. */
   hero?: string;
+  /** Present when `presetCard` is enabled. */
+  presetCard?: string;
   /** Present when `legend` is enabled. */
   legend?: string;
   animationBytes: number;
@@ -161,6 +168,21 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     await writeFile(heroPath, renderHeroSvg(metrics, { character }));
   }
 
+  let presetCardPath: string | undefined;
+  if (config.presetCard) {
+    const source = variants.find((variant) => variant.theme === 'dark') ?? variants[0]!;
+    const animation = await readFile(source.animation);
+    const type = config.format === 'webp' ? 'image/webp' : 'image/png';
+    presetCardPath = join(directory, `${config.preset}-card.svg`);
+    await writeFile(
+      presetCardPath,
+      renderPresetCardSvg(metrics, {
+        preset,
+        media: { href: `data:${type};base64,${animation.toString('base64')}`, width, height },
+      }),
+    );
+  }
+
   const first = variants[0]!;
   return {
     directory,
@@ -169,6 +191,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     metrics: metricsPath,
     card: cardPath,
     hero: heroPath,
+    presetCard: presetCardPath,
     legend: first.legend,
     animationBytes: first.animationBytes,
     variants,
