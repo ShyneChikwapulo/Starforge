@@ -7,12 +7,17 @@
  * It writes <preset>.webp and <preset>-legend.svg for every preset into .starforge/examples and
  * prints the command that publishes them to the `examples` branch, which the README links to.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseConfig } from '../packages/cli/src/config';
 import { generate } from '../packages/cli/src/generate';
-import { renderCardSvg } from '../packages/exporters/src/index';
+import {
+  renderCardSvg,
+  renderFooterSvg,
+  renderPresetCardSvg,
+  renderSectionSvg,
+} from '../packages/exporters/src/index';
 import { createSampleMetrics } from '../packages/github-data/src/index';
 import { PRESET_IDS, getPreset } from '../packages/presets/src/index';
 
@@ -52,6 +57,33 @@ async function main(): Promise<void> {
   await mkdir(join(ROOT, OUTPUT_DIR), { recursive: true });
   await writeFile(join(ROOT, OUTPUT_DIR, 'card.svg'), renderCardSvg(metrics));
   files.push('card.svg');
+
+  // The preset cards wrap each animation, and the page pieces show how they stack.
+  const frameSize = (id: string): { width: number; height: number } => {
+    const { size } = getPreset(id)!;
+    const width = size.width / size.height > 3 ? WIDE_WIDTH : WIDTH;
+    return { width, height: Math.round((width * size.height) / size.width) };
+  };
+  const cardFor = async (id: string, stack?: 'none'): Promise<string> => {
+    const webp = await readFile(join(ROOT, OUTPUT_DIR, `${id}.webp`));
+    return renderPresetCardSvg(metrics, {
+      preset: getPreset(id)!,
+      stack,
+      media: { href: `data:image/webp;base64,${webp.toString('base64')}`, ...frameSize(id) },
+    });
+  };
+  const pieces: [string, string][] = [
+    ['galaxy-card.svg', await cardFor('galaxy')],
+    ['atom-card.svg', await cardFor('atom')],
+    ['tree-page.svg', await cardFor('tree', 'none')],
+    ['chess-page.svg', await cardFor('chess', 'none')],
+    ['page-divider.svg', renderSectionSvg('Presets', { subtitle: 'Five ways to see one year' })],
+    ['page-footer.svg', renderFooterSvg(metrics)],
+  ];
+  for (const [name, svg] of pieces) {
+    await writeFile(join(ROOT, OUTPUT_DIR, name), svg);
+    files.push(name);
+  }
 
   console.log('\nPublish them to the examples branch with:\n');
   console.log(
