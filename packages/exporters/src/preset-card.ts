@@ -1,6 +1,7 @@
 import type { Metrics } from '@starforge/github-data';
 import { GlyphSet, drawText, escapeXml, measureCardText, type DrawTextStyle } from './card-text';
 import { BG, MUTED, PANEL, ROW, WHITE, YELLOW, formatNumber, panel, plural } from './hud';
+import { chromeLayer, type Cap } from './chrome';
 
 /**
  * A preset's animation inside the neon HUD: a title bar with your headline numbers, a window with
@@ -42,6 +43,11 @@ export interface PresetCardOptions {
   layout?: 'wide' | 'side';
   /** Pixel width. The height follows the content. Default 1200. */
   width?: number;
+  /**
+   * Draw as one piece of a stack of cards: the page chrome's continuous rails instead of a closed
+   * frame. Default: a standalone card with its own frame.
+   */
+  stack?: Cap;
 }
 
 type Style = Omit<DrawTextStyle, 'fill'> & { fill?: string };
@@ -328,6 +334,15 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
 
   const height = Math.ceil((contentBottom + 40) / GRID) * GRID;
   const frame = panel(12, 12, VIEW_WIDTH - 24, height - 24, { tl: 44, br: 44 });
+  const backdrop = options.stack
+    ? chromeLayer(VIEW_WIDTH, height, options.stack)
+    : [
+        `<rect width="${VIEW_WIDTH}" height="${height}" fill="${BG}"/>`,
+        `<rect width="${VIEW_WIDTH}" height="${height}" fill="url(#glowTR)"/>`,
+        `<rect width="${VIEW_WIDTH}" height="${height}" fill="url(#glowBL)"/>`,
+        `<path d="${frame}" fill="none" stroke="${YELLOW}" stroke-opacity="0.55" stroke-width="1.6"/>`,
+        `<rect class="pulse" x="92" y="9" width="240" height="7" fill="${YELLOW}" filter="url(#glow)"/>`,
+      ].join('\n');
   const title = `${preset.name} view of ${login}'s last 12 months of GitHub activity`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${Math.round((width * height) / VIEW_WIDTH)}" viewBox="0 0 ${VIEW_WIDTH} ${height}" role="img" aria-labelledby="preset-title">
@@ -348,11 +363,7 @@ ${glyphs.definitions()}
 @keyframes live{0%,100%{opacity:1}50%{opacity:.2}}
 @media (prefers-reduced-motion:reduce){.pulse,.live{animation:none}}
 </style>
-<rect width="${VIEW_WIDTH}" height="${height}" fill="${BG}"/>
-<rect width="${VIEW_WIDTH}" height="${height}" fill="url(#glowTR)"/>
-<rect width="${VIEW_WIDTH}" height="${height}" fill="url(#glowBL)"/>
-<path d="${frame}" fill="none" stroke="${YELLOW}" stroke-opacity="0.55" stroke-width="1.6"/>
-<rect class="pulse" x="92" y="9" width="240" height="7" fill="${YELLOW}" filter="url(#glow)"/>
+${backdrop}
 ${parts.join('\n')}
 </svg>
 `;

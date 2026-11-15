@@ -13,6 +13,7 @@ import {
   panel,
   plural,
 } from './hud';
+import { chromeLayer, type Cap } from './chrome';
 
 /**
  * The hero card: a 4:3 neon HUD that serves as a profile README's banner and profile card at
@@ -49,6 +50,11 @@ export interface HeroOptions {
   /** Pixel width. The height follows the 4:3 shape. Default 1200. */
   width?: number;
   character?: HeroCharacter;
+  /**
+   * Draw as one piece of a stack of cards: the page chrome's continuous rails instead of a closed
+   * frame. Default: a standalone card with its own frame.
+   */
+  stack?: Cap;
 }
 
 type Style = Omit<DrawTextStyle, 'fill'> & { fill?: string };
@@ -99,6 +105,7 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   const streaks = getStreaks(metrics);
   const calendar = contributions.calendar;
   const circumference = 2 * Math.PI * DIAL_RADIUS;
+  const stack = options.stack;
 
   const glyphs = new GlyphSet();
   const text = (x: number, y: number, content: string, style: Style): string =>
@@ -116,9 +123,11 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   }).join('');
   const arc = 0.72 * 2 * Math.PI * 226;
   parts.push(
-    `<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="${BG}"/>`,
-    `<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowTR)"/>`,
-    `<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowBL)"/>`,
+    ...(stack
+      ? [chromeLayer(VIEW_WIDTH, VIEW_HEIGHT, stack)]
+      : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="${BG}"/>`]),
+    ...(stack ? [] : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowTR)"/>`]),
+    ...(stack ? [] : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowBL)"/>`]),
     `<g stroke="${YELLOW}" stroke-opacity="0.05" stroke-width="1.2" clip-path="url(#frame)">${tunnel}</g>`,
     `<g clip-path="url(#frame)" fill="none" stroke="${YELLOW}">`,
     `<circle class="spin-a" cx="${RING_X}" cy="${RING_Y}" r="262" stroke-opacity="0.3" stroke-width="10" stroke-dasharray="2 9.2"/>`,
@@ -126,9 +135,21 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
     `<circle cx="${RING_X}" cy="${RING_Y}" r="190" stroke-opacity="0.2" stroke-width="2"/>`,
     `<circle cx="${RING_X}" cy="${RING_Y}" r="300" stroke-opacity="0.12" stroke-width="1.5"/>`,
     `</g>`,
-    `<path d="${frame}" fill="none" stroke="${YELLOW}" stroke-opacity="0.55" stroke-width="1.6"/>`,
-    `<rect class="pulse" x="92" y="9" width="240" height="7" fill="${YELLOW}" filter="url(#glow)"/>`,
-    `<path d="M36,70 L36,176 L66,176" fill="none" stroke="${YELLOW}" stroke-width="6" filter="url(#glow)"/>`,
+    ...(stack
+      ? []
+      : [
+          `<path d="${frame}" fill="none" stroke="${YELLOW}" stroke-opacity="0.55" stroke-width="1.6"/>`,
+        ]),
+    ...(stack
+      ? []
+      : [
+          `<rect class="pulse" x="92" y="9" width="240" height="7" fill="${YELLOW}" filter="url(#glow)"/>`,
+        ]),
+    ...(stack
+      ? []
+      : [
+          `<path d="M36,70 L36,176 L66,176" fill="none" stroke="${YELLOW}" stroke-width="6" filter="url(#glow)"/>`,
+        ]),
   );
 
   // Header: the name as a wordmark with a cyan glitch layer, three chips along the right.
