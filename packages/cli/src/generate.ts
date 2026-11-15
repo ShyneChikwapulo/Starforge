@@ -1,10 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { getPreset } from '@starforge/presets';
-import { renderCardSvg, renderLegendSvg } from '@starforge/exporters';
+import { renderCardSvg, renderHeroSvg, renderLegendSvg } from '@starforge/exporters';
 import { join, resolve } from 'node:path';
 import { encodeApng, encodePng, encodeWebp, renderLoops } from '@starforge/exporters';
 import { collectMetrics, createGraphQLClient, type Metrics } from '@starforge/github-data';
 import type { StarforgeConfig } from './config';
+import { loadHeroCharacter } from './hero-character';
 import { resolveLooks, type ThemeName } from './looks';
 
 export interface GenerateOptions {
@@ -38,6 +39,8 @@ export interface GenerateResult {
   metrics?: string;
   /** Present when `card` is enabled. */
   card?: string;
+  /** Present when `hero` is enabled. */
+  hero?: string;
   /** Present when `legend` is enabled. */
   legend?: string;
   animationBytes: number;
@@ -149,6 +152,15 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     await writeFile(cardPath, renderCardSvg(metrics));
   }
 
+  let heroPath: string | undefined;
+  if (config.hero) {
+    const character = config.heroCharacter
+      ? await loadHeroCharacter(resolve(options.cwd ?? process.cwd(), config.heroCharacter))
+      : undefined;
+    heroPath = join(directory, 'hero.svg');
+    await writeFile(heroPath, renderHeroSvg(metrics, { character }));
+  }
+
   const first = variants[0]!;
   return {
     directory,
@@ -156,6 +168,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     poster: first.poster,
     metrics: metricsPath,
     card: cardPath,
+    hero: heroPath,
     legend: first.legend,
     animationBytes: first.animationBytes,
     variants,
