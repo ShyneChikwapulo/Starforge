@@ -16,8 +16,8 @@ import { renderHeroSvg, type HeroCharacter } from '../packages/exporters/src/ind
 import { createSampleMetrics, parseMetrics } from '../packages/github-data/src/index';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const CHARACTER = join(ROOT, '.starforge', 'character');
-const OUT = join(ROOT, '.starforge', 'hero');
+const CHARACTER = join(ROOT, '.starforge', process.env.CHARACTER_DIR ?? 'character');
+const OUT = join(ROOT, '.starforge', process.env.HERO_OUT ?? 'hero');
 
 async function main(): Promise<void> {
   const fallback = join(ROOT, '.starforge', 'metrics-v2.json');

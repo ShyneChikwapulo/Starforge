@@ -397,7 +397,7 @@ animates on GitHub. Leave `heroCharacter` out and the card has no character. Fra
 380 × 500 to fill the slot.
 
 To make a strip from a rigged glTF/GLB model with an idle animation, use the scripts in
-[`scripts/`](scripts): `extract-gltf-textures.py`, `bake-character.ts` and `build-sprite.py` (their
+[`scripts/`](scripts): `extract-gltf-textures.py`, `preview-character.ts` (a contact sheet, to check which way the model faces and how it looks before baking), `bake-character.ts` and `build-sprite.py` (their
 headers show the commands). Check the licence of any model you use: its terms decide whether you
 may publish renders of it. Nothing from your model is stored in Starforge.
 

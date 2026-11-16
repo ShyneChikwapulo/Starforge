@@ -57,6 +57,7 @@ export function prepareCharacter(
   buffers: Buffer[],
   textureDir: string,
   dropTransparent: boolean,
+  hide: string[] = [],
 ): Character {
   const cache = new Map<number, Texture | null>();
   const image = (source: number): Texture | null => {
@@ -76,6 +77,8 @@ export function prepareCharacter(
   let vertices = 0;
   ((gltf.nodes ?? []) as Json[]).forEach((node, nodeIndex) => {
     if (node.mesh === undefined) return;
+    const meshName: string = gltf.meshes[node.mesh].name ?? '';
+    if (hide.includes(node.name ?? '') || hide.includes(meshName)) return;
     for (const primitive of gltf.meshes[node.mesh].primitives as Json[]) {
       if ((primitive.mode ?? 4) !== 4) continue;
       if (primitive.attributes.NORMAL === undefined) throw new Error('A mesh has no normals');
@@ -244,16 +247,18 @@ export function measureFit(mesh: SolidMesh, height: number): Fit {
  * the scene is mirrored once, in x, to compensate: a character that faces -z (as this model does)
  * then faces the camera and is not mirrored in the picture.
  */
-export function fitMesh(mesh: SolidMesh, fit: Fit): SolidMesh {
+export function fitMesh(mesh: SolidMesh, fit: Fit, facing: '+z' | '-z' = '-z'): SolidMesh {
+  const sx = facing === '-z' ? -1 : 1;
+  const sz = facing === '-z' ? 1 : -1;
   const positions = new Float32Array(mesh.positions.length);
   const normals = new Float32Array(mesh.normals.length);
   for (let i = 0; i < mesh.positions.length; i += 3) {
-    positions[i] = -(mesh.positions[i]! - fit.x) * fit.scale;
+    positions[i] = sx * (mesh.positions[i]! - fit.x) * fit.scale;
     positions[i + 1] = (mesh.positions[i + 1]! - fit.y) * fit.scale;
-    positions[i + 2] = (mesh.positions[i + 2]! - fit.z) * fit.scale;
-    normals[i] = -mesh.normals[i]!;
+    positions[i + 2] = sz * (mesh.positions[i + 2]! - fit.z) * fit.scale;
+    normals[i] = sx * mesh.normals[i]!;
     normals[i + 1] = mesh.normals[i + 1]!;
-    normals[i + 2] = mesh.normals[i + 2]!;
+    normals[i + 2] = sz * mesh.normals[i + 2]!;
   }
   return { positions, normals, colors: mesh.colors, indices: mesh.indices };
 }
