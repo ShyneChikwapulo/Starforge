@@ -19,6 +19,19 @@ inputs:
       working tree. The workflow needs "contents: write" permission.
     default: ''
 
+outputs:
+  directory:
+    description: The folder the images were generated into.
+    value: ${{ steps.generate.outputs.directory }}
+  files:
+    description: The generated files that are published, separated by spaces.
+    value: ${{ steps.generate.outputs.files }}
+  version:
+    description: >-
+      A short hash of the generated files. It changes when the images do, so ending image URLs
+      in ?v=<version> makes GitHub fetch the new images instead of showing a cached copy.
+    value: ${{ steps.generate.outputs.version }}
+
 runs:
   using: composite
   steps:
