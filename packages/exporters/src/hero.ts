@@ -44,6 +44,11 @@ export interface HeroCharacter {
   sequence?: number[];
   /** Frames per second. Default 8. */
   fps?: number;
+  /**
+   * Pixels per card unit. At the default of 1 a frame is drawn at its pixel size; frames made
+   * 1.5 times larger, for a sharper picture, are drawn at a density of 1.5.
+   */
+  density?: number;
 }
 
 export interface HeroOptions {
@@ -80,10 +85,11 @@ const pingPong = (count: number): number[] => {
 function characterCss(character: HeroCharacter): string {
   const order = character.sequence ?? pingPong(character.frames);
   const fps = character.fps ?? 8;
+  const density = character.density ?? 1;
   const keyframes = order
     .map(
       (frame, k) =>
-        `${((100 * k) / order.length).toFixed(3)}%{transform:translateX(${-frame * character.frameWidth}px)}`,
+        `${((100 * k) / order.length).toFixed(3)}%{transform:translateX(${Number((-(frame * character.frameWidth) / density).toFixed(3))}px)}`,
     )
     .join('');
   return `.char{animation:char ${(order.length / fps).toFixed(3)}s step-end infinite}@keyframes char{${keyframes}}`;
@@ -274,7 +280,7 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   if (options.character) {
     const c = options.character;
     parts.push(
-      `<g clip-path="url(#slot)" mask="url(#slotFade)"><image class="char" x="${HERO_SLOT.x}" y="${HERO_SLOT.y}" width="${c.frameWidth * c.frames}" height="${c.frameHeight}" href="${c.href}"/></g>`,
+      `<g clip-path="url(#slot)" mask="url(#slotFade)"><image class="char" x="${HERO_SLOT.x}" y="${HERO_SLOT.y}" width="${Number(((c.frameWidth * c.frames) / (c.density ?? 1)).toFixed(3))}" height="${Number((c.frameHeight / (c.density ?? 1)).toFixed(3))}" href="${c.href}"/></g>`,
     );
   }
 
