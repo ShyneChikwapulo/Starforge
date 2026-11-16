@@ -3,7 +3,8 @@ import { resolve } from 'node:path';
 import { parseMetrics } from '@starforge/github-data';
 import { loadConfig } from './config';
 import { generate } from './generate';
-import { formatStepOutputs } from './outputs';
+import { formatStepOutputs, publishedPaths } from './outputs';
+import { contentVersion } from './version';
 
 const USAGE = `Usage: starforge generate [--config <file>] [--metrics <file>]
 
@@ -47,8 +48,10 @@ async function main(): Promise<void> {
     if (file) console.log(`Wrote ${file}`);
   }
   if (result.metrics) console.log(`Metrics snapshot: ${result.metrics}`);
+  const version = await contentVersion(publishedPaths(result));
+  console.log(`Version: ${version}`);
   if (process.env.GITHUB_OUTPUT) {
-    await appendFile(process.env.GITHUB_OUTPUT, formatStepOutputs(result));
+    await appendFile(process.env.GITHUB_OUTPUT, formatStepOutputs(result, version));
   }
   const animations = result.presets.flatMap((preset) => preset.variants);
   const megabytes = animations.reduce((sum, v) => sum + v.animationBytes, 0) / 1_000_000;

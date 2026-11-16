@@ -558,6 +558,30 @@ A few things worth knowing:
 - Rendering time adds up. The atom is the slowest preset, so a run with all five takes a few
   minutes. That is fine for a scheduled run, but not for something you re-run by hand.
 
+## Fresh images
+
+GitHub shows README images through an image proxy that can keep serving an old copy of a URL for a
+long time, so an image you have just regenerated may not appear. The Action's `version` output is
+a short hash of the files it generated, and it changes whenever an image does. Put it on your image
+URLs and every new image is a new URL:
+
+```yaml
+- uses: ShyneChikwapulo/Starforge@main
+  id: starforge
+  with:
+    publish-branch: starforge-assets
+
+- name: Point the README at these images
+  env:
+    VERSION: ${{ steps.starforge.outputs.version }}
+  run: |
+    sed -i -E "s#(starforge-assets/[A-Za-z0-9_-]+\.svg)(\?v=[0-9a-f]+)?#\1?v=${VERSION}#g" README.md
+```
+
+Commit the README together with your metrics snapshot, as the
+[example workflow](examples/workflows/starforge.yml) does. The Action's outputs are `directory`
+(where the images were written), `files` (the ones it publishes) and `version`.
+
 ## Light and dark pages
 
 Out of the box the images keep their dark navy background. To make them blend into the page,
