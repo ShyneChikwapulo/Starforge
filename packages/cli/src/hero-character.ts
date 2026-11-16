@@ -8,6 +8,7 @@ const MetaSchema = z.object({
   height: z.number().int().positive(),
   frames: z.number().int().min(1),
   fps: z.number().positive().default(8),
+  density: z.number().positive().default(1),
 });
 
 const SPRITES: [file: string, type: string][] = [
@@ -40,6 +41,7 @@ export async function loadHeroCharacter(directory: string): Promise<HeroCharacte
       frameHeight: meta.height,
       frames: meta.frames,
       fps: meta.fps,
+      density: meta.density,
     };
   }
   throw new Error(`No sprite.webp or sprite.png in the hero character folder: ${directory}`);

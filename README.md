@@ -394,11 +394,14 @@ repository holding `sprite.webp` (or `sprite.png`), a horizontal strip of equall
 and a `meta.json` such as `{ "width": 380, "height": 500, "frames": 30, "fps": 8 }`. The card plays
 the strip with a plain CSS animation, forwards and then back, so it loops without a seam and
 animates on GitHub. Leave `heroCharacter` out and the card has no character. Frames are drawn at
-380 × 500 to fill the slot.
+380 × 500 units to fill the slot. For a sharper picture, bake larger frames and add `"density"`
+to `meta.json`: a density of 1.5 draws frames of 570 × 750 at the slot size.
 
 To make a strip from a rigged glTF/GLB model with an idle animation, use the scripts in
 [`scripts/`](scripts): `extract-gltf-textures.py`, `preview-character.ts` (a contact sheet, to check which way the model faces and how it looks before baking), `bake-character.ts` and `build-sprite.py` (their
-headers show the commands). Check the licence of any model you use: its terms decide whether you
+headers show the commands). A model with no rig, such as a static sculpt, can still be animated: see
+`scripts/blender/bake-cyber-samurai.py`, which has Blender render the frames with a procedural
+idle. Check the licence of any model you use: its terms decide whether you
 may publish renders of it. Nothing from your model is stored in Starforge.
 
 As with the profile card, the text is drawn as vector outlines, the animation is plain CSS, and a

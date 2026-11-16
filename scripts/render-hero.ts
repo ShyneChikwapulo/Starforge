@@ -38,12 +38,14 @@ async function main(): Promise<void> {
       frameHeight: meta.height,
       frames: meta.frames,
       fps: meta.fps,
+      density: meta.density,
     };
     still = {
       href: `data:image/png;base64,${first}`,
       frameWidth: meta.width,
       frameHeight: meta.height,
       frames: 1,
+      density: meta.density,
     };
   } else {
     console.log('No character sprite found; drawing the card without one.');
