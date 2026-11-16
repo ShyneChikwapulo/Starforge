@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pack raw RGBA frames (frame-000.rgba ... and meta.json) into one horizontal WebP strip.
+"""Pack frames (frame-000.rgba or frame-000.png ..., and meta.json) into one horizontal WebP strip.
 
   python3 scripts/build-sprite.py frames-dir out-dir [webp-quality, default 92]
 
@@ -19,8 +19,12 @@ assert w * n <= 16383, 'strip too wide for WebP'
 
 strip = Image.new('RGBA', (w * n, h))
 for i in range(n):
-    raw = open(os.path.join(source, f'frame-{i:03d}.rgba'), 'rb').read()
-    frame = Image.frombytes('RGBA', (w, h), raw)
+    rgba_path = os.path.join(source, f'frame-{i:03d}.rgba')
+    if os.path.exists(rgba_path):
+        frame = Image.frombytes('RGBA', (w, h), open(rgba_path, 'rb').read())
+    else:
+        frame = Image.open(os.path.join(source, f'frame-{i:03d}.png')).convert('RGBA')
+    assert frame.size == (w, h), f'frame {i} is {frame.size}, expected {(w, h)}'
     strip.paste(frame, (i * w, 0))
     if i == 0:
         frame.save(os.path.join(out, 'still.png'))
