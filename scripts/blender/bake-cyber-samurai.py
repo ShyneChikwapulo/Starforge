@@ -192,7 +192,7 @@ if robe:
 
 # ---- lights, camera, world ----
 target = bpy.data.objects.new('target', None)
-target.location = (0.0, 0.0, 1.5)
+target.location = (-0.05, 0.0, 1.5)
 scene.collection.objects.link(target)
 
 
@@ -219,7 +219,7 @@ area('fill', (3.5, -3.0, 1.6), (0.55, 0.7, 1.0), 45, 3.0)
 area('rim_r', (3.2, 3.4, 2.6), (1.0, 0.92, 0.1), 320, 1.5)
 area('rim_l', (-3.2, 3.0, 2.2), (1.0, 0.92, 0.1), 200, 1.5)
 
-VIEW_H, DIST, BASE_YAW = 1.5, 6.0, math.radians(12)
+VIEW_H, DIST, BASE_YAW = 1.55, 6.0, math.radians(12)
 cam_data = bpy.data.cameras.new('cam')
 cam_data.sensor_fit = 'VERTICAL'
 cam_data.sensor_height = 36.0
