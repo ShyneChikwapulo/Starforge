@@ -373,7 +373,8 @@ A few things worth knowing:
 A bigger sibling of the profile card: a 4:3 neon HUD that works as a profile README's banner and
 profile card in one. Your name and chips run along the top, your eight biggest languages down the
 left, your headline numbers in the middle, and on the right your streak, your pinned project and
-an animated character standing in front of slowly turning rings.
+an animated character standing in front of slowly turning rings. Your name is set in capitals, with the first letter of each word drawn larger; accents are
+dropped, and a name with no Latin letters (or none at all) shows your login instead.
 
 ```json
 { "username": "your-github-login", "hero": true, "heroCharacter": "assets/character" }
@@ -686,6 +687,14 @@ The profile card's text is drawn from outlines baked from
 under the [SIL Open Font License 1.1](licenses/Rajdhani-OFL-1.1.txt). Only the baked outlines are
 in this repository (`packages/exporters/src/card-font-data.ts`); `scripts/bake-card-font.ts`
 rebuilds them.
+
+The hero card's name is drawn from outlines baked from the capitals of
+[Cyberpunk Regular](https://www.fonts4free.net/cyberpunk-font.html), whose download page lists the
+author as Lyon ArtZ and the licence as MIT ([notice](licenses/Cyberpunk-Regular-MIT.txt)). The font
+file carries no licence text of its own, so those are the terms the page states. Only the baked
+outlines are in this repository (`packages/exporters/src/display-font-data.ts`);
+`scripts/bake-display-font.ts` rebuilds them. Starforge is not affiliated with CD Projekt, whose
+game shares the font's name.
 
 ## License
 

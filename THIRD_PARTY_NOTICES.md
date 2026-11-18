@@ -25,6 +25,22 @@ The profile card's text is drawn from glyph outlines baked from Rajdhani SemiBol
   outlines are stored in `packages/exporters/src/card-font-data.ts`. `scripts/bake-card-font.ts`
   rebuilds that file from the original font.
 
+## Cyberpunk Regular (font)
+
+The hero card's name is drawn from glyph outlines baked from the capitals of Cyberpunk Regular.
+
+- Source: https://www.fonts4free.net/cyberpunk-font.html, which lists the author as Lyon ArtZ and
+  the licence as MIT.
+- The font file itself carries no licence text or copyright line, and its name table says it was
+  created with Calligraphr (2018). The terms above are the ones the page states. The MIT text, with
+  the copyright line attributed to the author the page names, is in
+  [`licenses/Cyberpunk-Regular-MIT.txt`](licenses/Cyberpunk-Regular-MIT.txt).
+- Starforge does not distribute a font: the card draws the letters as vector outlines, and the
+  outlines are stored in `packages/exporters/src/display-font-data.ts`. `scripts/bake-display-font.ts`
+  rebuilds that file from the original font.
+- "Cyberpunk" is also the name of a game by CD Projekt S.A. Starforge is not affiliated with or
+  endorsed by CD Projekt.
+
 ## Stylized Tree (3D model)
 
 ["Stylized Tree"](https://sketchfab.com/3d-models/stylized-tree-2a00182b3ca4403da3f9e157184e4b42)
