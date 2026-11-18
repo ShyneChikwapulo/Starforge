@@ -14,6 +14,7 @@ import {
   plural,
 } from './hud';
 import { chromeLayer, type Cap } from './chrome';
+import { DISPLAY_FONT } from './display-font-data';
 
 /**
  * The hero card: a 4:3 neon HUD that serves as a profile README's banner and profile card at
@@ -64,16 +65,66 @@ export interface HeroOptions {
 
 type Style = Omit<DrawTextStyle, 'fill'> & { fill?: string };
 
-const NAME_SPACING = 5;
+const NAME_SPACING = 0;
+
+/**
+ * Where the name goes in the title bar. Its box runs from NAME_TOP, just under the bar's top edge,
+ * to NAME_BOTTOM, just above the chips. The font is hand-drawn, so its letters rise and fall by
+ * different amounts; the box is sized for the tallest initial (drawn leadScale times larger) and
+ * the deepest descender. That fixes the largest size and the baseline, the same for every name, so
+ * a name never touches the chips however it is spelt.
+ */
+const NAME_TOP = 54;
+const NAME_BOTTOM = 140;
+const NAME_WIDTH = 1112 - 96;
+const NAME_EM = ((DISPLAY_FONT.ascent + DISPLAY_FONT.descent) * DISPLAY_FONT.leadScale) / 1000;
+const NAME_MAX_SIZE = Math.floor((NAME_BOTTOM - NAME_TOP) / NAME_EM);
+
+export const HERO_NAME = {
+  top: NAME_TOP,
+  bottom: NAME_BOTTOM,
+  width: NAME_WIDTH,
+  maxSize: NAME_MAX_SIZE,
+  baseline: NAME_TOP + (DISPLAY_FONT.ascent * DISPLAY_FONT.leadScale * NAME_MAX_SIZE) / 1000,
+} as const;
+
+/**
+ * The name for the title bar: capitals, in characters the fonts have. Accents are dropped, anything
+ * else outside A-Z, digits and . ' - & becomes a space, and spaces are tidied. A name with no
+ * letter left (written in another script, or only emoji) shows the login instead, which GitHub
+ * keeps to plain ASCII.
+ */
+function cleanName(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9 .'&-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function displayName(user: { name: string | null; login: string }): string {
+  const own = cleanName(user.name ?? '');
+  return /[A-Z]/.test(own) ? own : cleanName(user.login);
+}
 
 function heroName(name: string, maxWidth: number): { text: string; size: number } {
   for (let max = 26; max > 3; max--) {
     const text = fit(name, max);
     const room = maxWidth - NAME_SPACING * Math.max(0, [...text].length - 1);
-    const size = Math.floor(room / measureCardText(text, 1));
-    if (size >= 30) return { text, size: Math.min(64, size) };
+    const size = Math.floor(room / measureCardText(text, 1, 0, 'display', true));
+    if (size >= 30) return { text, size: Math.min(NAME_MAX_SIZE, size) };
   }
   return { text: fit(name, 3), size: 30 };
+}
+
+/** The name as it is drawn: its text, and the size that fits the title bar. */
+export function layoutHeroName(user: { name: string | null; login: string }): {
+  text: string;
+  size: number;
+} {
+  return heroName(displayName(user), NAME_WIDTH);
 }
 
 const pingPong = (count: number): number[] => {
@@ -158,7 +209,7 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
         ]),
   );
 
-  // Header: the name as a wordmark with a cyan glitch layer, three chips along the right.
+  // Header: the name as a wordmark with a cyan glitch layer, three chips on the second row.
   parts.push(
     `<path d="${panel(56, 48, 1088, 138, { tl: 30, br: 30 })}" fill="${PANEL}" fill-opacity="0.85" stroke="${YELLOW}" stroke-opacity="0.4" stroke-width="1.4"/>`,
   );
@@ -174,17 +225,22 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   chips.forEach((chip, i) => {
     const w = chipWidths[i]!;
     parts.push(
-      `<path d="${panel(chipX, 98, w, 38, { tl: 10, br: 10 })}" fill="${YELLOW}"/>`,
-      text(chipX + w / 2, 123, chip, { size: 17, fill: BG, spacing: 1, anchor: 'middle' }),
+      `<path d="${panel(chipX, 146, w, 32, { tl: 10, br: 10 })}" fill="${YELLOW}"/>`,
+      text(chipX + w / 2, 168, chip, { size: 17, fill: BG, spacing: 1, anchor: 'middle' }),
     );
     chipX += w + gap;
   });
-  const name = heroName((user.name ?? user.login).toUpperCase(), chipsStart - 96 - 28);
-  const nameStyle = { size: name.size, spacing: NAME_SPACING };
+  const name = layoutHeroName(user);
+  const nameStyle = {
+    size: name.size,
+    spacing: NAME_SPACING,
+    font: 'display' as const,
+    lead: true,
+  };
   parts.push(
-    `<g class="glitch"><g transform="translate(3 2)" opacity="0.6">${text(96, 100 + name.size * 0.2, name.text, { ...nameStyle, fill: CYAN })}</g></g>`,
-    text(96, 100 + name.size * 0.2, name.text, { ...nameStyle, fill: YELLOW, filter: 'glow' }),
-    text(98, 164, `@${user.login.toUpperCase()} · GITHUB`, { size: 17, fill: MUTED, spacing: 5 }),
+    `<g class="glitch"><g transform="translate(3 2)" opacity="0.6">${text(96, HERO_NAME.baseline, name.text, { ...nameStyle, fill: CYAN })}</g></g>`,
+    text(96, HERO_NAME.baseline, name.text, { ...nameStyle, fill: YELLOW, filter: 'glow' }),
+    text(98, 178, `@${user.login.toUpperCase()} · GITHUB`, { size: 17, fill: MUTED, spacing: 5 }),
   );
 
   // Sidebar: the eight biggest languages, with dim locked rows for the slots left over.
