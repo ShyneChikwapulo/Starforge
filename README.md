@@ -2,7 +2,14 @@
 
 [![CI](https://github.com/ShyneChikwapulo/Starforge/actions/workflows/ci.yml/badge.svg)](https://github.com/ShyneChikwapulo/Starforge/actions/workflows/ci.yml)
 
+<p align="center">
+  <a href="https://github.com/ShyneChikwapulo/starforge-template"><img src="https://raw.githubusercontent.com/ShyneChikwapulo/starforge-template/starforge-assets/hero.svg" alt="An animated neon HUD profile card built from GitHub activity: a name in a jagged display font, languages, headline numbers, a streak and an animated samurai in front of slowly turning rings" width="100%" /></a>
+</p>
+
 Turn your real GitHub activity into a living 3D visual for your profile README.
+
+**New here? [Use the template](https://github.com/new?template_name=starforge-template&template_owner=ShyneChikwapulo)** to get a finished, animated profile like the one above in
+about five minutes, with nothing to edit by hand.
 
 Starforge reads your public GitHub data, builds a deterministic 3D scene from it, and renders a
 looping animation that a scheduled GitHub Action keeps up to date. The same scene also runs in an
@@ -84,6 +91,21 @@ These previews are rendered from built-in sample data, so you can reproduce them
 Everything is deterministic: the same data, preset and seed always produce the same picture.
 
 ## Quick start
+
+### Use the template
+
+The fastest way is the [starforge-template](https://github.com/ShyneChikwapulo/starforge-template) repository: a complete profile README
+(the hero, the five presets and a footer) with the workflow already set up.
+
+1. [Create a repository from the template](https://github.com/new?template_name=starforge-template&template_owner=ShyneChikwapulo). Name it **exactly your GitHub username** and
+   make it public: that name is what makes GitHub show its README on your profile.
+2. Open the **Actions** tab, choose **Starforge** and click **Run workflow**. The first run takes a
+   few minutes, and fills in your username and image links for you.
+
+The template's [`SETUP.md`](https://github.com/ShyneChikwapulo/starforge-template/blob/main/SETUP.md) covers private contributions, other
+presets and your own character.
+
+### Or set it up yourself
 
 1. In your profile repository (`<you>/<you>`), add `starforge.config.json`. Pick any preset from
    the [gallery](#gallery):
@@ -373,8 +395,9 @@ A few things worth knowing:
 A bigger sibling of the profile card: a 4:3 neon HUD that works as a profile README's banner and
 profile card in one. Your name and chips run along the top, your eight biggest languages down the
 left, your headline numbers in the middle, and on the right your streak, your pinned project and
-an animated character standing in front of slowly turning rings. Your name is set in capitals, with the first letter of each word drawn larger; accents are
-dropped, and a name with no Latin letters (or none at all) shows your login instead.
+an animated character standing in front of slowly turning rings. Your name is set in capitals, with
+the first letter of each word drawn larger; accents are dropped, and a name with no Latin letters
+(or none at all) shows your login instead.
 
 ```json
 { "username": "your-github-login", "hero": true, "heroCharacter": "assets/character" }
@@ -390,7 +413,9 @@ The Action publishes `hero.svg` next to the other images. Embed it full width:
 />
 ```
 
-The character is yours to bring: Starforge ships none. `heroCharacter` is a folder in your
+The character is yours to bring: Starforge itself ships none (the
+[template](https://github.com/ShyneChikwapulo/starforge-template) includes one, with its credit).
+`heroCharacter` is a folder in your
 repository holding `sprite.webp` (or `sprite.png`), a horizontal strip of equally sized frames,
 and a `meta.json` such as `{ "width": 380, "height": 500, "frames": 30, "fps": 8 }`. The card plays
 the strip with a plain CSS animation, forwards and then back, so it loops without a seam and
@@ -399,11 +424,12 @@ animates on GitHub. Leave `heroCharacter` out and the card has no character. Fra
 to `meta.json`: a density of 1.5 draws frames of 570 × 750 at the slot size.
 
 To make a strip from a rigged glTF/GLB model with an idle animation, use the scripts in
-[`scripts/`](scripts): `extract-gltf-textures.py`, `preview-character.ts` (a contact sheet, to check which way the model faces and how it looks before baking), `bake-character.ts` and `build-sprite.py` (their
-headers show the commands). A model with no rig, such as a static sculpt, can still be animated: see
-`scripts/blender/bake-cyber-samurai.py`, which has Blender render the frames with a procedural
-idle. Check the licence of any model you use: its terms decide whether you
-may publish renders of it. Nothing from your model is stored in Starforge.
+[`scripts/`](scripts): `extract-gltf-textures.py`, `preview-character.ts` (a contact sheet, to check
+which way the model faces and how it looks before baking), `bake-character.ts` and
+`build-sprite.py`. Their headers show the commands. A model with no rig, such as a static sculpt,
+can still be animated: `scripts/blender/bake-cyber-samurai.py` has Blender render the frames with a
+procedural idle. Check the licence of any model you use, because its terms decide whether you may
+publish renders of it. Nothing from your model is stored in Starforge.
 
 As with the profile card, the text is drawn as vector outlines, the animation is plain CSS, and a
 viewer that prefers reduced motion sees the card still.
@@ -695,6 +721,12 @@ file carries no licence text of its own, so those are the terms the page states.
 outlines are in this repository (`packages/exporters/src/display-font-data.ts`);
 `scripts/bake-display-font.ts` rebuilds them. Starforge is not affiliated with CD Projekt, whose
 game shares the font's name.
+
+The [template repository](https://github.com/ShyneChikwapulo/starforge-template) ships an animated character made from
+"Cyber Samurai" by [KhoaMinh](https://sketchfab.com/duongminhkhoa231), licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model was rendered to animation
+frames with added lighting and a procedural idle motion. Its full credit is in the template's
+README and in `assets/character/ATTRIBUTION.md`.
 
 ## License
 
