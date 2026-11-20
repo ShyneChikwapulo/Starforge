@@ -1,5 +1,6 @@
 import { getStreaks, mergeRate, type Metrics } from '@starforge/github-data';
 import { GlyphSet, drawText, escapeXml, measureCardText, type DrawTextStyle } from './card-text';
+import { resolveSkin, type Skin, type SkinName } from './skin';
 
 /**
  * A neon HUD profile card as a self-contained SVG: yellow on black, chamfered panels, dashed
@@ -9,12 +10,6 @@ import { GlyphSet, drawText, escapeXml, measureCardText, type DrawTextStyle } fr
  * inside an <img>, and the base style is always the finished picture.
  */
 
-const YELLOW = '#fcee09';
-const BG = '#0a0a08';
-const PANEL = '#13130d';
-const ROW = '#1a1a12';
-const WHITE = '#f4f4ee';
-const MUTED = '#a8a56a';
 const VIEW_WIDTH = 800;
 const VIEW_HEIGHT = 500;
 const DIAL_RADIUS = 34;
@@ -24,6 +19,8 @@ const NAME_SPACING = 3;
 export interface CardOptions {
   /** Pixel width. The height follows the card's 8:5 shape. Default 800. */
   width?: number;
+  /** The look of the card. Default: cyberpunk. */
+  skin?: SkinName | Skin;
 }
 
 const formatNumber = (value: number): string =>
@@ -50,27 +47,22 @@ export function fitName(name: string, maxWidth: number): { text: string; size: n
   return { text: fit(name, 3), size: 20 };
 }
 
-interface Cuts {
-  tl?: number;
-  tr?: number;
-  br?: number;
-  bl?: number;
-}
-
-/** A rectangle with any of its corners cut off at 45 degrees. */
-function panel(x: number, y: number, w: number, h: number, cuts: Cuts = {}): string {
-  const { tl = 0, tr = 0, br = 0, bl = 0 } = cuts;
-  return (
-    `M${x + tl},${y} L${x + w - tr},${y} L${x + w},${y + tr} L${x + w},${y + h - br} ` +
-    `L${x + w - br},${y + h} L${x + bl},${y + h} L${x},${y + h - bl} L${x},${y + tl} Z`
-  );
-}
-
 type Style = Omit<DrawTextStyle, 'fill'> & { fill?: string };
 
 export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): string {
   const width = options.width ?? VIEW_WIDTH;
   const height = Math.round((width * VIEW_HEIGHT) / VIEW_WIDTH);
+  const skin = resolveSkin(options.skin);
+  const {
+    accent: YELLOW,
+    bg: BG,
+    panel: PANEL,
+    row: ROW,
+    text: WHITE,
+    muted: MUTED,
+    soft: SOFT,
+  } = skin.colors;
+  const panel = skin.shape;
   const { user, contributions, totals } = metrics;
   const stats = metrics.pullRequestStats;
   const rate = mergeRate(stats);
@@ -140,7 +132,7 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
       `<rect x="46" y="${y + 13}" width="16" height="16" rx="4" fill="${language.color ?? YELLOW}"/>`,
       text(76, y + 20, fit(language.name.toUpperCase(), 12), {
         size: 15,
-        fill: i === 0 ? WHITE : '#d6d4b4',
+        fill: i === 0 ? WHITE : SOFT,
         spacing: 2,
       }),
       text(228, y + 20, percent >= 1 ? `${Math.round(percent)}%` : '<1%', {

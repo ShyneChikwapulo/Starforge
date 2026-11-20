@@ -1,18 +1,7 @@
 import { getStreaks, mergeRate, type Metrics } from '@starforge/github-data';
 import { GlyphSet, drawText, escapeXml, measureCardText, type DrawTextStyle } from './card-text';
-import {
-  BG,
-  CYAN,
-  MUTED,
-  PANEL,
-  ROW,
-  WHITE,
-  YELLOW,
-  fit,
-  formatNumber,
-  panel,
-  plural,
-} from './hud';
+import { fit, formatNumber, plural } from './hud';
+import { resolveSkin, type Skin, type SkinName } from './skin';
 import { chromeLayer, type Cap } from './chrome';
 import { DISPLAY_FONT } from './display-font-data';
 
@@ -61,6 +50,8 @@ export interface HeroOptions {
    * frame. Default: a standalone card with its own frame.
    */
   stack?: Cap;
+  /** The look of the card. Default: cyberpunk. */
+  skin?: SkinName | Skin;
 }
 
 type Style = Omit<DrawTextStyle, 'fill'> & { fill?: string };
@@ -146,16 +137,26 @@ function characterCss(character: HeroCharacter): string {
   return `.char{animation:char ${(order.length / fps).toFixed(3)}s step-end infinite}@keyframes char{${keyframes}}`;
 }
 
-const bracket = (x: number, y: number, sx: number, sy: number): string =>
-  `<path d="M${x},${y + sy * 12} V${y} H${x + sx * 12}" fill="none" stroke="${YELLOW}" stroke-width="2" stroke-opacity="0.8"/>`;
-
-const lock = (x: number, y: number): string =>
-  `<rect x="${x}" y="${y + 6}" width="14" height="10" fill="${MUTED}" fill-opacity="0.35"/>` +
-  `<path d="M${x + 3},${y + 6} V${y + 3} a4,4 0 0 1 8,0 V${y + 6}" fill="none" stroke="${MUTED}" stroke-opacity="0.35" stroke-width="2"/>`;
-
 export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): string {
   const width = options.width ?? VIEW_WIDTH;
   const height = Math.round((width * VIEW_HEIGHT) / VIEW_WIDTH);
+  const skin = resolveSkin(options.skin);
+  const {
+    accent: YELLOW,
+    accent2: CYAN,
+    bg: BG,
+    panel: PANEL,
+    row: ROW,
+    text: WHITE,
+    muted: MUTED,
+    soft: SOFT,
+  } = skin.colors;
+  const panel = skin.shape;
+  const bracket = (x: number, y: number, sx: number, sy: number): string =>
+    `<path d="M${x},${y + sy * 12} V${y} H${x + sx * 12}" fill="none" stroke="${YELLOW}" stroke-width="2" stroke-opacity="0.8"/>`;
+  const lock = (x: number, y: number): string =>
+    `<rect x="${x}" y="${y + 6}" width="14" height="10" fill="${MUTED}" fill-opacity="0.35"/>` +
+    `<path d="M${x + 3},${y + 6} V${y + 3} a4,4 0 0 1 8,0 V${y + 6}" fill="none" stroke="${MUTED}" stroke-opacity="0.35" stroke-width="2"/>`;
   const { user, contributions, totals } = metrics;
   const stats = metrics.pullRequestStats;
   const rate = mergeRate(stats);
@@ -181,7 +182,7 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   const arc = 0.72 * 2 * Math.PI * 226;
   parts.push(
     ...(stack
-      ? [chromeLayer(VIEW_WIDTH, VIEW_HEIGHT, stack)]
+      ? [chromeLayer(VIEW_WIDTH, VIEW_HEIGHT, stack, skin)]
       : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="${BG}"/>`]),
     ...(stack ? [] : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowTR)"/>`]),
     ...(stack ? [] : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowBL)"/>`]),
@@ -270,7 +271,7 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
       `<rect x="100" y="${y + 16}" width="24" height="24" rx="6" fill="${colour}"/>`,
       text(140, y + 28, fit(language.name.toUpperCase(), 13), {
         size: 21,
-        fill: i === 0 ? WHITE : '#d6d4b4',
+        fill: i === 0 ? WHITE : SOFT,
         spacing: 3,
       }),
       text(352, y + 28, percent >= 1 ? `${Math.round(percent)}%` : '<1%', {

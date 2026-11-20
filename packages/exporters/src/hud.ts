@@ -1,15 +1,7 @@
 /**
- * Shared pieces of the neon HUD look: the palette, chamfered panels and number formatting. The
+ * Shared pieces of the neon HUD look: chamfered panels and number formatting. The
  * profile card, the hero card and the preset cards are all drawn from these.
  */
-
-export const YELLOW = '#fcee09';
-export const BG = '#0a0a08';
-export const PANEL = '#13130d';
-export const ROW = '#1a1a12';
-export const WHITE = '#f4f4ee';
-export const MUTED = '#a8a56a';
-export const CYAN = '#2ee6ff';
 
 export interface Cuts {
   tl?: number;

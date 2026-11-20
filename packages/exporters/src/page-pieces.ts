@@ -1,7 +1,7 @@
 import type { Metrics } from '@starforge/github-data';
 import { GlyphSet, drawText, escapeXml, measureCardText } from './card-text';
 import { chromeLayer } from './chrome';
-import { BG, MUTED, PANEL, YELLOW, panel } from './hud';
+import { resolveSkin, type Skin, type SkinName } from './skin';
 
 /**
  * The two small pieces that finish a stack of cards: a section divider that breaks a page into
@@ -34,11 +34,15 @@ export interface SectionOptions {
   width?: number;
   /** A few words, right-aligned above the rule. */
   subtitle?: string;
+  /** The look of the piece. Default: cyberpunk. */
+  skin?: SkinName | Skin;
 }
 
 /** A divider: chevrons, a title in neon capitals and a rule running to the right edge. */
 export function renderSectionSvg(title: string, options: SectionOptions = {}): string {
   const height = 120;
+  const skin = resolveSkin(options.skin);
+  const { accent: YELLOW, muted: MUTED } = skin.colors;
   const glyphs = new GlyphSet();
   const name = clean(title);
   const size = 34;
@@ -46,7 +50,7 @@ export function renderSectionSvg(title: string, options: SectionOptions = {}): s
   const textX = PAD + 56;
   const ruleStart = textX + Math.ceil(measureCardText(name, size, spacing)) + 28;
   const parts = [
-    chromeLayer(VIEW_WIDTH, height, 'none'),
+    chromeLayer(VIEW_WIDTH, height, 'none', skin),
     `<polygon points="${PAD + 8},42 ${PAD + 24},60 ${PAD + 8},78 ${PAD + 8},68 ${PAD + 14},60 ${PAD + 8},52" fill="${YELLOW}"/>`,
     `<polygon points="${PAD + 26},42 ${PAD + 42},60 ${PAD + 26},78 ${PAD + 26},68 ${PAD + 32},60 ${PAD + 26},52" fill="${YELLOW}" fill-opacity="0.45"/>`,
     drawText(glyphs, textX, 72, name, { size, fill: YELLOW, spacing, filter: 'glow' }),
@@ -75,11 +79,16 @@ export function renderSectionSvg(title: string, options: SectionOptions = {}): s
 export interface FooterOptions {
   /** Pixel width. The height follows the shape. Default 1200. */
   width?: number;
+  /** The look of the piece. Default: cyberpunk. */
+  skin?: SkinName | Skin;
 }
 
 /** The last piece of a stack: a credit strip, the sync date, and the bottom cap. */
 export function renderFooterSvg(metrics: Metrics, options: FooterOptions = {}): string {
   const height = 180;
+  const skin = resolveSkin(options.skin);
+  const { accent: YELLOW, bg: BG, panel: PANEL, muted: MUTED } = skin.colors;
+  const panel = skin.shape;
   const glyphs = new GlyphSet();
   const text = (x: number, y: number, content: string, size: number, fill: string, spacing = 3) =>
     drawText(glyphs, x, y, content, { size, fill, spacing });
@@ -90,7 +99,7 @@ export function renderFooterSvg(metrics: Metrics, options: FooterOptions = {}): 
     return `<rect x="${x}" y="128" width="10" height="10" fill="${YELLOW}" fill-opacity="${(0.2 + (0.8 * (i + 1)) / 12).toFixed(2)}"/>`;
   }).join('');
   const parts = [
-    chromeLayer(VIEW_WIDTH, height, 'bottom'),
+    chromeLayer(VIEW_WIDTH, height, 'bottom', skin),
     `<path d="${panel(PAD, 40, CONTENT, 64, { tl: 18, br: 18 })}" fill="${PANEL}" fill-opacity="0.85" stroke="${YELLOW}" stroke-opacity="0.4" stroke-width="1.4"/>`,
     `<path d="${panel(PAD + 20, 56, chipWidth, 32, { tl: 9, br: 9 })}" fill="${YELLOW}"/>`,
     drawText(glyphs, PAD + 20 + chipWidth / 2, 78, brand, {
