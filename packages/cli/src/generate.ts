@@ -168,6 +168,7 @@ async function generatePreset(
       presetCardPath,
       renderPresetCardSvg(metrics, {
         stack: config.page ? 'none' : undefined,
+        skin: config.skin,
         preset,
         media: { href: `data:${type};base64,${animation.toString('base64')}`, width, height },
       }),
@@ -209,7 +210,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   let cardPath: string | undefined;
   if (config.card) {
     cardPath = join(directory, 'card.svg');
-    await writeFile(cardPath, renderCardSvg(metrics));
+    await writeFile(cardPath, renderCardSvg(metrics, { skin: config.skin }));
   }
 
   let heroPath: string | undefined;
@@ -220,7 +221,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     heroPath = join(directory, 'hero.svg');
     await writeFile(
       heroPath,
-      renderHeroSvg(metrics, { character, stack: config.page ? 'top' : undefined }),
+      renderHeroSvg(metrics, {
+        character,
+        stack: config.page ? 'top' : undefined,
+        skin: config.skin,
+      }),
     );
   }
 
@@ -228,10 +233,10 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   let dividerPath: string | undefined;
   if (config.page) {
     footerPath = join(directory, 'footer.svg');
-    await writeFile(footerPath, renderFooterSvg(metrics));
+    await writeFile(footerPath, renderFooterSvg(metrics, { skin: config.skin }));
     if (config.divider) {
       dividerPath = join(directory, 'divider.svg');
-      await writeFile(dividerPath, renderSectionSvg(config.divider));
+      await writeFile(dividerPath, renderSectionSvg(config.divider, { skin: config.skin }));
     }
   }
 

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { PRESET_IDS } from '@starforge/presets';
+import { SKIN_NAMES } from '@starforge/exporters';
 import { z } from 'zod';
 
 export const ConfigSchema = z
@@ -48,6 +49,12 @@ export const ConfigSchema = z
     page: z.boolean().default(false),
     /** With `page`: also write divider.svg, a section heading with this title. */
     divider: z.string().min(1).optional(),
+    /**
+     * The look of every card: its colours and the shape of its panels. `cyberpunk` is the
+     * original yellow-on-black look. Not to be confused with `theme`, which is about light and dark
+     * pages for the 3D presets.
+     */
+    skin: z.enum(SKIN_NAMES).default('cyberpunk'),
     /**
      * "dark" is the original look. "light" is drawn for white pages. "both" writes the dark set
      * and a second set named with "-light", so a README can pick one with a <picture> element.

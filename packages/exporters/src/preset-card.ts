@@ -1,6 +1,7 @@
 import type { Metrics } from '@starforge/github-data';
 import { GlyphSet, drawText, escapeXml, measureCardText, type DrawTextStyle } from './card-text';
-import { BG, MUTED, PANEL, ROW, WHITE, YELLOW, formatNumber, panel, plural } from './hud';
+import { formatNumber, plural } from './hud';
+import { resolveSkin, type Skin, type SkinName } from './skin';
 import { chromeLayer, type Cap } from './chrome';
 
 /**
@@ -16,7 +17,6 @@ const PAD = 48;
 const CONTENT = VIEW_WIDTH - 2 * PAD;
 const GRID = 60;
 const TOP = 148;
-const SOFT = '#d6d4b4';
 
 /** The parts of a preset a card needs. */
 export interface PresetCardPreset {
@@ -48,6 +48,8 @@ export interface PresetCardOptions {
    * frame. Default: a standalone card with its own frame.
    */
   stack?: Cap;
+  /** The look of the card. Default: cyberpunk. */
+  skin?: SkinName | Skin;
 }
 
 type Style = Omit<DrawTextStyle, 'fill'> & { fill?: string };
@@ -113,19 +115,6 @@ function weeklyTotals(calendar: { count: number }[], weeks: number): number[] {
   return totals;
 }
 
-const squares = (x: number, y: number, totals: number[]): string => {
-  const busiest = Math.max(1, ...totals);
-  return totals
-    .map(
-      (sum, i) =>
-        `<rect x="${x + i * 18}" y="${y}" width="10" height="10" fill="${YELLOW}" fill-opacity="${(0.15 + (0.85 * sum) / busiest).toFixed(2)}"/>`,
-    )
-    .join('');
-};
-
-const bracket = (x: number, y: number, sx: number, sy: number): string =>
-  `<path d="M${x},${y + sy * 18} V${y} H${x + sx * 18}" fill="none" stroke="${YELLOW}" stroke-width="2" stroke-opacity="0.85"/>`;
-
 interface Box {
   x: number;
   y: number;
@@ -136,6 +125,29 @@ interface Box {
 export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions): string {
   const { preset, media } = options;
   const width = options.width ?? VIEW_WIDTH;
+  const skin = resolveSkin(options.skin);
+  const {
+    accent: YELLOW,
+    accent2: CYAN,
+    bg: BG,
+    panel: PANEL,
+    row: ROW,
+    text: WHITE,
+    muted: MUTED,
+    soft: SOFT,
+  } = skin.colors;
+  const panel = skin.shape;
+  const squares = (x: number, y: number, totals: number[]): string => {
+    const busiest = Math.max(1, ...totals);
+    return totals
+      .map(
+        (sum, i) =>
+          `<rect x="${x + i * 18}" y="${y}" width="10" height="10" fill="${YELLOW}" fill-opacity="${(0.15 + (0.85 * sum) / busiest).toFixed(2)}"/>`,
+      )
+      .join('');
+  };
+  const bracket = (x: number, y: number, sx: number, sy: number): string =>
+    `<path d="M${x},${y + sy * 18} V${y} H${x + sx * 18}" fill="none" stroke="${YELLOW}" stroke-width="2" stroke-opacity="0.85"/>`;
   const layout = options.layout ?? (media.width / media.height >= 1.6 ? 'wide' : 'side');
   const login = metrics.user.login;
   const segments = captionSegments(preset.caption);
@@ -335,7 +347,7 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
   const height = Math.ceil((contentBottom + 40) / GRID) * GRID;
   const frame = panel(12, 12, VIEW_WIDTH - 24, height - 24, { tl: 44, br: 44 });
   const backdrop = options.stack
-    ? chromeLayer(VIEW_WIDTH, height, options.stack)
+    ? chromeLayer(VIEW_WIDTH, height, options.stack, skin)
     : [
         `<rect width="${VIEW_WIDTH}" height="${height}" fill="${BG}"/>`,
         `<rect width="${VIEW_WIDTH}" height="${height}" fill="url(#glowTR)"/>`,

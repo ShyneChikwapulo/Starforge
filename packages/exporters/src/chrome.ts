@@ -1,4 +1,4 @@
-import { BG, YELLOW } from './hud';
+import { CYBERPUNK, type Skin } from './skin';
 
 /**
  * The neon HUD's page chrome: a solid background, a faint grid, glows along the two edges, and a
@@ -16,7 +16,13 @@ const OUTER = 14;
 const INNER = 28;
 const CUT = 44;
 
-export function chromeLayer(width: number, height: number, cap: Cap = 'none'): string {
+export function chromeLayer(
+  width: number,
+  height: number,
+  cap: Cap = 'none',
+  skin: Skin = CYBERPUNK,
+): string {
+  const { accent: YELLOW, bg: BG } = skin.colors;
   const top = cap === 'top' || cap === 'both';
   const bottom = cap === 'bottom' || cap === 'both';
   const right = width - OUTER;
