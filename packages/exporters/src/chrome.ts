@@ -1,4 +1,4 @@
-import { CYBERPUNK, type Skin } from './skin';
+import { CYBERPUNK, edgeAttrs, type Skin } from './skin';
 
 /**
  * The neon HUD's page chrome: a solid background, a faint grid, glows along the two edges, and a
@@ -16,12 +16,43 @@ const OUTER = 14;
 const INNER = 28;
 const CUT = 44;
 
+/**
+ * The calm page chrome: a flat background and a single thin border down each side, with rounded
+ * caps at the ends. It uses the same 14-unit rail as the neon chrome, so pieces still join.
+ */
+function calmChrome(width: number, height: number, cap: Cap, skin: Skin): string {
+  const top = cap === 'top' || cap === 'both';
+  const bottom = cap === 'bottom' || cap === 'both';
+  const inset = 14;
+  const r = 12;
+  const right = width - inset;
+  const start = top ? inset + r : 0;
+  const end = bottom ? height - inset - r : height;
+  const edge = edgeAttrs(skin, 1);
+  const parts = [
+    `<rect width="${width}" height="${height}" fill="${skin.colors.bg}"/>`,
+    `<path d="M${inset},${start} V${end} M${right},${start} V${end}" fill="none" ${edge}/>`,
+  ];
+  if (top) {
+    parts.push(
+      `<path d="M${inset},${inset + r} A${r},${r} 0 0 1 ${inset + r},${inset} H${right - r} A${r},${r} 0 0 1 ${right},${inset + r}" fill="none" ${edge}/>`,
+    );
+  }
+  if (bottom) {
+    parts.push(
+      `<path d="M${inset},${height - inset - r} A${r},${r} 0 0 0 ${inset + r},${height - inset} H${right - r} A${r},${r} 0 0 0 ${right},${height - inset - r}" fill="none" ${edge}/>`,
+    );
+  }
+  return parts.join('\n');
+}
+
 export function chromeLayer(
   width: number,
   height: number,
   cap: Cap = 'none',
   skin: Skin = CYBERPUNK,
 ): string {
+  if (!skin.ornaments) return calmChrome(width, height, cap, skin);
   const { accent: YELLOW, bg: BG } = skin.colors;
   const top = cap === 'top' || cap === 'both';
   const bottom = cap === 'bottom' || cap === 'both';

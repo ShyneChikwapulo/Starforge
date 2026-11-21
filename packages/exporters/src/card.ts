@@ -1,6 +1,6 @@
 import { getStreaks, mergeRate, type Metrics } from '@starforge/github-data';
 import { GlyphSet, drawText, escapeXml, measureCardText, type DrawTextStyle } from './card-text';
-import { resolveSkin, type Skin, type SkinName } from './skin';
+import { chipStyle, edgeAttrs, resolveSkin, trackAttrs, type Skin, type SkinName } from './skin';
 
 /**
  * A neon HUD profile card as a self-contained SVG: yellow on black, chamfered panels, dashed
@@ -62,7 +62,13 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
     muted: MUTED,
     soft: SOFT,
   } = skin.colors;
+  const TITLE = skin.colors.title ?? YELLOW;
+  const LABEL = skin.colors.label ?? YELLOW;
   const panel = skin.shape;
+  const { ornaments, glow } = skin;
+  const edge = (opacity: number): string => edgeAttrs(skin, opacity);
+  const track = (opacity: number): string => trackAttrs(skin, opacity);
+  const chipTheme = chipStyle(skin);
   const { user, contributions, totals } = metrics;
   const stats = metrics.pullRequestStats;
   const rate = mergeRate(stats);
@@ -73,16 +79,22 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
   const glyphs = new GlyphSet();
   const text = (x: number, y: number, content: string, style: Style): string =>
     drawText(glyphs, x, y, content, { ...style, fill: style.fill ?? WHITE });
-  const label: Style = { size: 11, fill: YELLOW, spacing: 3 };
+  const label: Style = { size: 11, fill: LABEL, spacing: 3 };
   const parts: string[] = [];
 
   // Background: a dark base, a yellow glow in the top-right corner and a faint grid.
   parts.push(
     `<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="${BG}"/>`,
-    `<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#bgGlow)"/>`,
-    `<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#grid)"/>`,
-    `<path d="${panel(10, 10, 780, 480, { tl: 30, br: 30 })}" fill="none" stroke="${YELLOW}" stroke-opacity="0.55" stroke-width="1.2"/>`,
-    `<rect class="pulse" x="44" y="8" width="170" height="5" fill="${YELLOW}" filter="url(#glow)"/>`,
+    ...(glow ? [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#bgGlow)"/>`] : []),
+    ...(ornaments
+      ? [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#grid)"/>`]
+      : []),
+    `<path d="${panel(10, 10, 780, 480, { tl: 30, br: 30 })}" fill="none" ${edge(0.55)} stroke-width="1.2"/>`,
+    ...(ornaments
+      ? [
+          `<rect class="pulse" x="44" y="8" width="170" height="5" fill="${YELLOW}" filter="url(#glow)"/>`,
+        ]
+      : []),
   );
 
   // Header: three chips along the right, and the name in the space they leave.
@@ -98,8 +110,13 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
   chips.forEach((chip, i) => {
     const w = chipWidths[i]!;
     parts.push(
-      `<path d="${panel(chipX, 50, w, 30, { tl: 8, br: 8 })}" fill="${YELLOW}"/>`,
-      text(chipX + w / 2, 70, chip, { size: 12, fill: BG, spacing: 1, anchor: 'middle' }),
+      `<path d="${panel(chipX, 50, w, 30, { tl: 8, br: 8 })}" fill="${chipTheme.fill}"${chipTheme.stroke ? ` stroke="${chipTheme.stroke}"` : ''}/>`,
+      text(chipX + w / 2, 70, chip, {
+        size: 12,
+        fill: chipTheme.text,
+        spacing: 1,
+        anchor: 'middle',
+      }),
     );
     chipX += w + gap;
   });
@@ -107,12 +124,12 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
   parts.push(
     text(46, 40 + name.size, name.text, {
       size: name.size,
-      fill: YELLOW,
+      fill: TITLE,
       spacing: NAME_SPACING,
-      filter: 'glow',
+      filter: glow ? 'glow' : undefined,
     }),
     text(48, 102, `@${user.login.toUpperCase()} · GITHUB`, { size: 13, fill: MUTED, spacing: 4 }),
-    `<line x1="30" y1="124" x2="770" y2="124" stroke="${YELLOW}" stroke-opacity="0.25" stroke-dasharray="2 6"/>`,
+    `<line x1="30" y1="124" x2="770" y2="124" ${edge(0.25)} stroke-dasharray="2 6"/>`,
   );
 
   // Sidebar: the five biggest languages.
@@ -128,7 +145,11 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
     parts.push(
       `<g class="lang-row">`,
       `<rect x="34" y="${y}" width="206" height="42" fill="${ROW}"/>`,
-      `<rect x="237" y="${y}" width="3" height="42" fill="${i === 0 ? YELLOW : MUTED}" fill-opacity="${i === 0 ? 1 : 0.4}"/>`,
+      ...(ornaments
+        ? [
+            `<rect x="237" y="${y}" width="3" height="42" fill="${i === 0 ? YELLOW : MUTED}" fill-opacity="${i === 0 ? 1 : 0.4}"/>`,
+          ]
+        : []),
       `<rect x="46" y="${y + 13}" width="16" height="16" rx="4" fill="${language.color ?? YELLOW}"/>`,
       text(76, y + 20, fit(language.name.toUpperCase(), 12), {
         size: 15,
@@ -140,7 +161,7 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
         fill: MUTED,
         anchor: 'end',
       }),
-      `<rect x="76" y="${y + 29}" width="152" height="3" fill="${YELLOW}" fill-opacity="0.15"/>`,
+      `<rect x="76" y="${y + 29}" width="152" height="3" ${track(0.15)}/>`,
       `<rect x="76" y="${y + 29}" width="${(152 * language.share) / topShare}" height="3" fill="${language.color ?? YELLOW}"/>`,
       `</g>`,
     );
@@ -148,9 +169,13 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
 
   // Main panel: four headline numbers.
   parts.push(
-    `<path d="${panel(262, 140, 296, 282, { tl: 36, br: 24 })}" fill="${PANEL}" stroke="${YELLOW}" stroke-opacity="0.5"/>`,
-    `<polygon points="262,176 298,140 262,140" fill="${YELLOW}"/>`,
-    `<rect class="pulse" x="330" y="137" width="150" height="4" fill="${YELLOW}" filter="url(#glow)"/>`,
+    `<path d="${panel(262, 140, 296, 282, { tl: 36, br: 24 })}" fill="${PANEL}" ${edge(0.5)}/>`,
+    ...(ornaments ? [`<polygon points="262,176 298,140 262,140" fill="${YELLOW}"/>`] : []),
+    ...(ornaments
+      ? [
+          `<rect class="pulse" x="330" y="137" width="150" height="4" fill="${YELLOW}" filter="url(#glow)"/>`,
+        ]
+      : []),
   );
   const headline: { label: string; value: string; note?: string }[] = [
     { label: 'STARS EARNED', value: formatNumber(totals.stars) },
@@ -176,8 +201,10 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
     if (i < headline.length - 1) {
       const y = top + 64;
       parts.push(
-        `<line x1="262" y1="${y}" x2="558" y2="${y}" stroke="${YELLOW}" stroke-opacity="0.3" stroke-dasharray="4 4"/>`,
-        `<polygon points="262,${y - 5} 271,${y} 262,${y + 5}" fill="${YELLOW}"/>`,
+        `<line x1="262" y1="${y}" x2="558" y2="${y}" ${edge(0.3)} stroke-dasharray="4 4"/>`,
+        ...(ornaments
+          ? [`<polygon points="262,${y - 5} 271,${y} 262,${y + 5}" fill="${YELLOW}"/>`]
+          : []),
       );
     }
   });
@@ -185,11 +212,15 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
   // Gauge: the merge rate.
   const offset = circumference * (1 - (rate ?? 0));
   parts.push(
-    `<path d="${panel(578, 140, 192, 140, { tr: 20 })}" fill="${PANEL}" stroke="${YELLOW}" stroke-opacity="0.5"/>`,
+    `<path d="${panel(578, 140, 192, 140, { tr: 20 })}" fill="${PANEL}" ${edge(0.5)}/>`,
     text(594, 162, 'MERGE RATE', label),
-    `<circle cx="674" cy="218" r="${TICK_RADIUS}" fill="none" stroke="${YELLOW}" stroke-opacity="0.35" stroke-width="4" stroke-dasharray="1.5 6.5"/>`,
-    `<circle cx="674" cy="218" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-opacity="0.2" stroke-width="6"/>`,
-    `<circle class="${rate === null ? '' : 'sweep'}" cx="674" cy="218" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-width="6" stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 674 218)" filter="url(#glow)"/>`,
+    ...(ornaments
+      ? [
+          `<circle cx="674" cy="218" r="${TICK_RADIUS}" fill="none" ${edge(0.35)} stroke-width="4" stroke-dasharray="1.5 6.5"/>`,
+        ]
+      : []),
+    `<circle cx="674" cy="218" r="${DIAL_RADIUS}" fill="none" ${edge(0.2)} stroke-width="6"/>`,
+    `<circle class="${rate === null ? '' : 'sweep'}" cx="674" cy="218" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-width="6" stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 674 218)"${glow ? ' filter="url(#glow)"' : ''}/>`,
     text(674, 226, rate === null ? '—' : `${Math.round(rate * 100)}%`, {
       size: 22,
       anchor: 'middle',
@@ -207,7 +238,7 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
   const peak = Math.max(1, ...recent.map((day) => day.count));
   const streak = String(streaks.current);
   parts.push(
-    `<path d="${panel(578, 292, 192, 130, { bl: 20 })}" fill="${PANEL}" stroke="${YELLOW}" stroke-opacity="0.5"/>`,
+    `<path d="${panel(578, 292, 192, 130, { bl: 20 })}" fill="${PANEL}" ${edge(0.5)}/>`,
     text(594, 314, 'CURRENT STREAK', label),
     text(594, 352, streak, { size: 36 }),
     text(594 + measureCardText(streak, 36) + 8, 352, plural(streaks.current, 'DAY', 'DAYS'), {
@@ -241,11 +272,11 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
       ? { tag: 'TOP PROJECT', name: best.name, stars: best.stars }
       : null;
   parts.push(
-    `<path d="${panel(34, 436, 736, 36, { bl: 14, tr: 14 })}" fill="${ROW}" stroke="${YELLOW}" stroke-opacity="0.4"/>`,
+    `<path d="${panel(34, 436, 736, 36, { bl: 14, tr: 14 })}" fill="${ROW}" ${edge(0.4)}/>`,
   );
   if (project) {
     parts.push(
-      text(52, 450, project.tag, { size: 10, fill: YELLOW, spacing: 3 }),
+      text(52, 450, project.tag, { size: 10, fill: LABEL, spacing: 3 }),
       text(52, 466, fit(project.name, 30), { size: 16 }),
       text(752, 458, `${formatNumber(project.stars)} ${plural(project.stars, 'STAR', 'STARS')}`, {
         size: 14,
@@ -255,11 +286,12 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
       }),
     );
   }
-  parts.push(
-    `<rect x="420" y="447" width="120" height="2" fill="${YELLOW}"/>`,
-    `<rect x="420" y="454" width="80" height="2" fill="${YELLOW}" fill-opacity="0.6"/>`,
-    `<rect x="420" y="461" width="100" height="2" fill="${YELLOW}" fill-opacity="0.35"/>`,
-  );
+  if (ornaments)
+    parts.push(
+      `<rect x="420" y="447" width="120" height="2" fill="${YELLOW}"/>`,
+      `<rect x="420" y="454" width="80" height="2" fill="${YELLOW}" fill-opacity="0.6"/>`,
+      `<rect x="420" y="461" width="100" height="2" fill="${YELLOW}" fill-opacity="0.35"/>`,
+    );
 
   // Footer: the last twelve weeks as a row of squares, brighter for a busier week.
   const weeks: number[] = [];
@@ -296,9 +328,9 @@ export function renderCardSvg(metrics: Metrics, options: CardOptions = {}): stri
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}" role="img" aria-labelledby="card-title">
 <title id="card-title">${escapeXml(title)}</title>
 <defs>
-<filter id="glow" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-<radialGradient id="bgGlow" cx="85%" cy="12%" r="70%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.16"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>
-<pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="${YELLOW}" stroke-opacity="0.05"/></pattern>
+${glow ? `<filter id="glow" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` : ''}
+${glow ? `<radialGradient id="bgGlow" cx="85%" cy="12%" r="70%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.16"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>` : ''}
+${ornaments ? `<pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" ${edge(0.05)}/></pattern>` : ''}
 ${glyphs.definitions()}
 </defs>
 <style>

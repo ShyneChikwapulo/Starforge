@@ -1,7 +1,7 @@
 import { getStreaks, mergeRate, type Metrics } from '@starforge/github-data';
 import { GlyphSet, drawText, escapeXml, measureCardText, type DrawTextStyle } from './card-text';
 import { fit, formatNumber, plural } from './hud';
-import { resolveSkin, type Skin, type SkinName } from './skin';
+import { chipStyle, edgeAttrs, resolveSkin, trackAttrs, type Skin, type SkinName } from './skin';
 import { chromeLayer, type Cap } from './chrome';
 import { DISPLAY_FONT } from './display-font-data';
 
@@ -118,6 +118,23 @@ export function layoutHeroName(user: { name: string | null; login: string }): {
   return heroName(displayName(user), NAME_WIDTH);
 }
 
+const PLAIN_NAME = { maxSize: 60, baseline: 112 } as const;
+
+/** The name in the card font, for a skin that does not set it as a wordmark. */
+export function layoutPlainName(user: { name: string | null; login: string }): {
+  text: string;
+  size: number;
+} {
+  const name = displayName(user);
+  for (let max = 26; max > 3; max--) {
+    const text = fit(name, max);
+    const room = NAME_WIDTH - 2 * Math.max(0, [...text].length - 1);
+    const size = Math.floor(room / measureCardText(text, 1));
+    if (size >= 30) return { text, size: Math.min(PLAIN_NAME.maxSize, size) };
+  }
+  return { text: fit(name, 3), size: 30 };
+}
+
 const pingPong = (count: number): number[] => {
   const order = Array.from({ length: count }, (_, i) => i);
   for (let i = count - 2; i > 0; i--) order.push(i);
@@ -152,6 +169,12 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
     soft: SOFT,
   } = skin.colors;
   const panel = skin.shape;
+  const TITLE = skin.colors.title ?? YELLOW;
+  const LABEL = skin.colors.label ?? YELLOW;
+  const { ornaments, glow } = skin;
+  const edge = (opacity: number): string => edgeAttrs(skin, opacity);
+  const track = (opacity: number): string => trackAttrs(skin, opacity);
+  const chipTheme = chipStyle(skin);
   const bracket = (x: number, y: number, sx: number, sy: number): string =>
     `<path d="M${x},${y + sy * 12} V${y} H${x + sx * 12}" fill="none" stroke="${YELLOW}" stroke-width="2" stroke-opacity="0.8"/>`;
   const lock = (x: number, y: number): string =>
@@ -168,7 +191,7 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   const glyphs = new GlyphSet();
   const text = (x: number, y: number, content: string, style: Style): string =>
     drawText(glyphs, x, y, content, { ...style, fill: style.fill ?? WHITE });
-  const label: Style = { size: 15, fill: YELLOW, spacing: 4 };
+  const label: Style = { size: 15, fill: LABEL, spacing: 4 };
   const frame = panel(12, 12, 1176, 876, { tl: 44, br: 44 });
   const parts: string[] = [];
 
@@ -184,26 +207,30 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
     ...(stack
       ? [chromeLayer(VIEW_WIDTH, VIEW_HEIGHT, stack, skin)]
       : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="${BG}"/>`]),
-    ...(stack ? [] : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowTR)"/>`]),
-    ...(stack ? [] : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowBL)"/>`]),
-    `<g stroke="${YELLOW}" stroke-opacity="0.05" stroke-width="1.2" clip-path="url(#frame)">${tunnel}</g>`,
-    `<g clip-path="url(#frame)" fill="none" stroke="${YELLOW}">`,
-    `<circle class="spin-a" cx="${RING_X}" cy="${RING_Y}" r="262" stroke-opacity="0.3" stroke-width="10" stroke-dasharray="2 9.2"/>`,
-    `<circle class="spin-b" cx="${RING_X}" cy="${RING_Y}" r="226" stroke-opacity="0.55" stroke-width="7" stroke-dasharray="${arc.toFixed(1)} ${(2 * Math.PI * 226 - arc).toFixed(1)}"/>`,
-    `<circle cx="${RING_X}" cy="${RING_Y}" r="190" stroke-opacity="0.2" stroke-width="2"/>`,
-    `<circle cx="${RING_X}" cy="${RING_Y}" r="300" stroke-opacity="0.12" stroke-width="1.5"/>`,
-    `</g>`,
-    ...(stack
+    ...(stack || !glow
       ? []
-      : [
-          `<path d="${frame}" fill="none" stroke="${YELLOW}" stroke-opacity="0.55" stroke-width="1.6"/>`,
-        ]),
-    ...(stack
+      : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowTR)"/>`]),
+    ...(stack || !glow
+      ? []
+      : [`<rect width="${VIEW_WIDTH}" height="${VIEW_HEIGHT}" fill="url(#glowBL)"/>`]),
+    ...(ornaments
+      ? [
+          `<g ${edge(0.05)} stroke-width="1.2" clip-path="url(#frame)">${tunnel}</g>`,
+          `<g clip-path="url(#frame)" fill="none" stroke="${YELLOW}">`,
+          `<circle class="spin-a" cx="${RING_X}" cy="${RING_Y}" r="262" stroke-opacity="0.3" stroke-width="10" stroke-dasharray="2 9.2"/>`,
+          `<circle class="spin-b" cx="${RING_X}" cy="${RING_Y}" r="226" stroke-opacity="0.55" stroke-width="7" stroke-dasharray="${arc.toFixed(1)} ${(2 * Math.PI * 226 - arc).toFixed(1)}"/>`,
+          `<circle cx="${RING_X}" cy="${RING_Y}" r="190" stroke-opacity="0.2" stroke-width="2"/>`,
+          `<circle cx="${RING_X}" cy="${RING_Y}" r="300" stroke-opacity="0.12" stroke-width="1.5"/>`,
+          `</g>`,
+        ]
+      : []),
+    ...(stack ? [] : [`<path d="${frame}" fill="none" ${edge(0.55)} stroke-width="1.6"/>`]),
+    ...(stack || !ornaments
       ? []
       : [
           `<rect class="pulse" x="92" y="9" width="240" height="7" fill="${YELLOW}" filter="url(#glow)"/>`,
         ]),
-    ...(stack
+    ...(stack || !ornaments
       ? []
       : [
           `<path d="M36,70 L36,176 L66,176" fill="none" stroke="${YELLOW}" stroke-width="6" filter="url(#glow)"/>`,
@@ -212,7 +239,7 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
 
   // Header: the name as a wordmark with a cyan glitch layer, three chips on the second row.
   parts.push(
-    `<path d="${panel(56, 48, 1088, 138, { tl: 30, br: 30 })}" fill="${PANEL}" fill-opacity="0.85" stroke="${YELLOW}" stroke-opacity="0.4" stroke-width="1.4"/>`,
+    `<path d="${panel(56, 48, 1088, 138, { tl: 30, br: 30 })}" fill="${PANEL}" fill-opacity="0.85" ${edge(0.4)} stroke-width="1.4"/>`,
   );
   const chips = [
     `${formatNumber(user.followers)} ${plural(user.followers, 'FOLLOWER', 'FOLLOWERS')}`,
@@ -226,21 +253,29 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   chips.forEach((chip, i) => {
     const w = chipWidths[i]!;
     parts.push(
-      `<path d="${panel(chipX, 146, w, 32, { tl: 10, br: 10 })}" fill="${YELLOW}"/>`,
-      text(chipX + w / 2, 168, chip, { size: 17, fill: BG, spacing: 1, anchor: 'middle' }),
+      `<path d="${panel(chipX, 146, w, 32, { tl: 10, br: 10 })}" fill="${chipTheme.fill}"${chipTheme.stroke ? ` stroke="${chipTheme.stroke}"` : ''}/>`,
+      text(chipX + w / 2, 168, chip, {
+        size: 17,
+        fill: chipTheme.text,
+        spacing: 1,
+        anchor: 'middle',
+      }),
     );
     chipX += w + gap;
   });
-  const name = layoutHeroName(user);
-  const nameStyle = {
-    size: name.size,
-    spacing: NAME_SPACING,
-    font: 'display' as const,
-    lead: true,
-  };
+  const wordmark = skin.wordmark;
+  const name = wordmark ? layoutHeroName(user) : layoutPlainName(user);
+  const nameStyle = wordmark
+    ? { size: name.size, spacing: NAME_SPACING, font: 'display' as const, lead: true }
+    : { size: name.size, spacing: 2 };
+  const nameBase = wordmark ? HERO_NAME.baseline : PLAIN_NAME.baseline;
   parts.push(
-    `<g class="glitch"><g transform="translate(3 2)" opacity="0.6">${text(96, HERO_NAME.baseline, name.text, { ...nameStyle, fill: CYAN })}</g></g>`,
-    text(96, HERO_NAME.baseline, name.text, { ...nameStyle, fill: YELLOW, filter: 'glow' }),
+    ...(wordmark
+      ? [
+          `<g class="glitch"><g transform="translate(3 2)" opacity="0.6">${text(96, nameBase, name.text, { ...nameStyle, fill: CYAN })}</g></g>`,
+        ]
+      : []),
+    text(96, nameBase, name.text, { ...nameStyle, fill: TITLE, filter: glow ? 'glow' : undefined }),
     text(98, 178, `@${user.login.toUpperCase()} · GITHUB`, { size: 17, fill: MUTED, spacing: 5 }),
   );
 
@@ -266,8 +301,12 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
     const colour = language.color ?? YELLOW;
     parts.push(
       `<g>`,
-      `<rect x="84" y="${y}" width="288" height="56" fill="${i === 0 ? 'url(#rowActive)' : ROW}"/>`,
-      `<rect x="368" y="${y}" width="4" height="56" fill="${i === 0 ? YELLOW : MUTED}" fill-opacity="${i === 0 ? 1 : 0.4}"/>`,
+      `<rect x="84" y="${y}" width="288" height="56" fill="${i === 0 && ornaments ? 'url(#rowActive)' : ROW}"/>`,
+      ...(ornaments
+        ? [
+            `<rect x="368" y="${y}" width="4" height="56" fill="${i === 0 ? YELLOW : MUTED}" fill-opacity="${i === 0 ? 1 : 0.4}"/>`,
+          ]
+        : []),
       `<rect x="100" y="${y + 16}" width="24" height="24" rx="6" fill="${colour}"/>`,
       text(140, y + 28, fit(language.name.toUpperCase(), 13), {
         size: 21,
@@ -279,7 +318,7 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
         fill: MUTED,
         anchor: 'end',
       }),
-      `<rect x="140" y="${y + 40}" width="200" height="4" fill="${YELLOW}" fill-opacity="0.15"/>`,
+      `<rect x="140" y="${y + 40}" width="200" height="4" ${track(0.15)}/>`,
       `<rect x="140" y="${y + 40}" width="${((200 * language.share) / topShare).toFixed(1)}" height="4" fill="${colour}"/>`,
       `</g>`,
     );
@@ -287,9 +326,13 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
 
   // Centre panel: four headline rows with dashed dividers.
   parts.push(
-    `<path d="${panel(410, 232, 350, 508, { tl: 46, br: 30 })}" fill="${PANEL}" stroke="${YELLOW}" stroke-opacity="0.5" stroke-width="1.4"/>`,
-    `<polygon points="410,278 456,232 410,232" fill="${YELLOW}"/>`,
-    `<rect class="pulse" x="520" y="229" width="200" height="6" fill="${YELLOW}" filter="url(#glow)"/>`,
+    `<path d="${panel(410, 232, 350, 508, { tl: 46, br: 30 })}" fill="${PANEL}" ${edge(0.5)} stroke-width="1.4"/>`,
+    ...(ornaments ? [`<polygon points="410,278 456,232 410,232" fill="${YELLOW}"/>`] : []),
+    ...(ornaments
+      ? [
+          `<rect class="pulse" x="520" y="229" width="200" height="6" fill="${YELLOW}" filter="url(#glow)"/>`,
+        ]
+      : []),
   );
   const rows: { label: string; value: string; note?: string }[] = [
     { label: 'STARS EARNED', value: formatNumber(totals.stars) },
@@ -312,8 +355,10 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
     if (i < rows.length - 1) {
       const y = top + 104;
       parts.push(
-        `<line x1="410" y1="${y}" x2="760" y2="${y}" stroke="${YELLOW}" stroke-opacity="0.3" stroke-dasharray="5 5"/>`,
-        `<polygon points="410,${y - 7} 422,${y} 410,${y + 7}" fill="${YELLOW}"/>`,
+        `<line x1="410" y1="${y}" x2="760" y2="${y}" ${edge(0.3)} stroke-dasharray="5 5"/>`,
+        ...(ornaments
+          ? [`<polygon points="410,${y - 7} 422,${y} 410,${y + 7}" fill="${YELLOW}"/>`]
+          : []),
       );
     }
   });
@@ -323,10 +368,14 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   const dialY = 712;
   const offset = circumference * (1 - (rate ?? 0));
   parts.push(
-    `<circle cx="${dialX}" cy="${dialY}" r="62" fill="${BG}" stroke="${YELLOW}" stroke-opacity="0.45" stroke-width="1.4"/>`,
-    `<circle cx="${dialX}" cy="${dialY}" r="${TICK_RADIUS}" fill="none" stroke="${YELLOW}" stroke-opacity="0.35" stroke-width="5" stroke-dasharray="1.8 7.4"/>`,
-    `<circle cx="${dialX}" cy="${dialY}" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-opacity="0.2" stroke-width="8"/>`,
-    `<circle class="${rate === null ? '' : 'sweep'}" cx="${dialX}" cy="${dialY}" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-width="8" stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 ${dialX} ${dialY})" filter="url(#glow)"/>`,
+    `<circle cx="${dialX}" cy="${dialY}" r="62" fill="${BG}" ${edge(0.45)} stroke-width="1.4"/>`,
+    ...(ornaments
+      ? [
+          `<circle cx="${dialX}" cy="${dialY}" r="${TICK_RADIUS}" fill="none" ${edge(0.35)} stroke-width="5" stroke-dasharray="1.8 7.4"/>`,
+        ]
+      : []),
+    `<circle cx="${dialX}" cy="${dialY}" r="${DIAL_RADIUS}" fill="none" ${edge(0.2)} stroke-width="8"/>`,
+    `<circle class="${rate === null ? '' : 'sweep'}" cx="${dialX}" cy="${dialY}" r="${DIAL_RADIUS}" fill="none" stroke="${YELLOW}" stroke-width="8" stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 ${dialX} ${dialY})"${glow ? ' filter="url(#glow)"' : ''}/>`,
     text(dialX, dialY + 6, stats ? `${stats.merged}/${stats.opened}` : '—', {
       size: 18,
       anchor: 'middle',
@@ -346,12 +395,16 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   const peak = Math.max(1, ...recent.map((day) => day.count));
   const streak = String(streaks.current);
   parts.push(
-    `<path d="${panel(868, 556, 264, 116, { tl: 30 })}" fill="${PANEL}" fill-opacity="0.88" stroke="${YELLOW}" stroke-opacity="0.5" stroke-width="1.4"/>`,
-    bracket(900, 574, 1, 1),
-    bracket(1116, 574, -1, 1),
-    bracket(900, 660, 1, -1),
-    bracket(1116, 660, -1, -1),
-    text(916, 596, 'CURRENT STREAK', { size: 14, fill: YELLOW, spacing: 4 }),
+    `<path d="${panel(868, 556, 264, 116, { tl: 30 })}" fill="${PANEL}" fill-opacity="0.88" ${edge(0.5)} stroke-width="1.4"/>`,
+    ...(ornaments
+      ? [
+          bracket(900, 574, 1, 1),
+          bracket(1116, 574, -1, 1),
+          bracket(900, 660, 1, -1),
+          bracket(1116, 660, -1, -1),
+        ]
+      : []),
+    text(916, 596, 'CURRENT STREAK', { size: 14, fill: LABEL, spacing: 4 }),
     text(916, 646, streak, { size: 50 }),
     text(916 + measureCardText(streak, 50) + 10, 646, plural(streaks.current, 'DAY', 'DAYS'), {
       size: 16,
@@ -384,14 +437,18 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
       ? { tag: 'TOP PROJECT', name: best.name, stars: best.stars }
       : null;
   parts.push(
-    `<path d="${panel(830, 708, 310, 86, { bl: 24, tr: 24 })}" fill="${ROW}" stroke="${YELLOW}" stroke-opacity="0.4" stroke-width="1.4"/>`,
-    `<rect x="1050" y="722" width="80" height="3" fill="${YELLOW}"/>`,
-    `<rect x="1080" y="729" width="50" height="3" fill="${YELLOW}" fill-opacity="0.6"/>`,
-    `<rect x="1065" y="736" width="65" height="3" fill="${YELLOW}" fill-opacity="0.35"/>`,
+    `<path d="${panel(830, 708, 310, 86, { bl: 24, tr: 24 })}" fill="${ROW}" ${edge(0.4)} stroke-width="1.4"/>`,
+    ...(ornaments
+      ? [
+          `<rect x="1050" y="722" width="80" height="3" fill="${YELLOW}"/>`,
+          `<rect x="1080" y="729" width="50" height="3" fill="${YELLOW}" fill-opacity="0.6"/>`,
+          `<rect x="1065" y="736" width="65" height="3" fill="${YELLOW}" fill-opacity="0.35"/>`,
+        ]
+      : []),
   );
   if (project) {
     parts.push(
-      text(856, 738, project.tag, { size: 13, fill: YELLOW, spacing: 4 }),
+      text(856, 738, project.tag, { size: 13, fill: LABEL, spacing: 4 }),
       text(856, 776, fit(project.name, 18), { size: 28 }),
       text(1118, 776, `${formatNumber(project.stars)} ${plural(project.stars, 'STAR', 'STARS')}`, {
         size: 18,
@@ -404,8 +461,8 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
 
   // Reviews strip, bottom left of the centre panel.
   parts.push(
-    `<path d="${panel(410, 758, 266, 38, { bl: 14, tr: 14 })}" fill="${ROW}" stroke="${YELLOW}" stroke-opacity="0.4" stroke-width="1.4"/>`,
-    text(430, 783, 'PR REVIEWS', { size: 13, fill: YELLOW, spacing: 4 }),
+    `<path d="${panel(410, 758, 266, 38, { bl: 14, tr: 14 })}" fill="${ROW}" ${edge(0.4)} stroke-width="1.4"/>`,
+    text(430, 783, 'PR REVIEWS', { size: 13, fill: LABEL, spacing: 4 }),
     text(654, 784, formatNumber(contributions.reviews), { size: 20, anchor: 'end' }),
   );
 
@@ -445,10 +502,10 @@ export function renderHeroSvg(metrics: Metrics, options: HeroOptions = {}): stri
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}" role="img" aria-labelledby="hero-title">
 <title id="hero-title">${escapeXml(title)}</title>
 <defs>
-<filter id="glow" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2.6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-<radialGradient id="glowTR" cx="88%" cy="16%" r="62%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.2"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>
-<radialGradient id="glowBL" cx="6%" cy="96%" r="46%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.13"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>
-<linearGradient id="rowActive" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.3"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0.02"/></linearGradient>
+${glow ? `<filter id="glow" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2.6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` : ''}
+${glow ? `<radialGradient id="glowTR" cx="88%" cy="16%" r="62%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.2"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>` : ''}
+${glow ? `<radialGradient id="glowBL" cx="6%" cy="96%" r="46%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.13"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>` : ''}
+${ornaments ? `<linearGradient id="rowActive" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.3"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0.02"/></linearGradient>` : ''}
 <clipPath id="frame"><path d="${frame}"/></clipPath>
 <linearGradient id="slotFadeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0.78" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
 <mask id="slotFade" maskUnits="userSpaceOnUse" x="${HERO_SLOT.x}" y="${HERO_SLOT.y}" width="${HERO_SLOT.width}" height="${HERO_SLOT.height}"><rect x="${HERO_SLOT.x}" y="${HERO_SLOT.y}" width="${HERO_SLOT.width}" height="${HERO_SLOT.height}" fill="url(#slotFadeGrad)"/></mask>
