@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="172" viewBox="0 0 480 172" role="img" aria-label="Starforge legend for sample-user. 1,079 commits · 129 pull requests · 12 repositories · 1,206 stars. Languages: Python 34%, Rust 29%, TypeScript 18%, C# 10%, Go 8.6%.">
+<title>Starforge legend for sample-user. 1,079 commits · 129 pull requests · 12 repositories · 1,206 stars. Languages: Python 34%, Rust 29%, TypeScript 18%, C# 10%, Go 8.6%.</title>
+<rect width="480" height="172" rx="8" fill="#05080f"/>
+<g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" fill="#c9d1d9">
+<text x="20" y="32" font-size="18" font-weight="600" fill="#f0f6fc">@sample-user</text>
+<text x="460" y="32" font-size="13" text-anchor="end" fill="#8b949e">1,079 commits · 129 pull requests · 12 repositories · 1,206 stars</text>
+<text x="20" y="50" font-size="11" fill="#6e7681">LAST 12 MONTHS · LANGUAGES BY SHARE OF CODE</text>
+<circle cx="26" cy="68" r="6" fill="#3572A5"/><text x="38" y="72" font-size="13">Python <tspan fill="#8b949e">34%</tspan></text><circle cx="140" cy="68" r="6" fill="#dea584"/><text x="152" y="72" font-size="13">Rust <tspan fill="#8b949e">29%</tspan></text><circle cx="239" cy="68" r="6" fill="#3178c6"/><text x="251" y="72" font-size="13">TypeScript <tspan fill="#8b949e">18%</tspan></text><circle cx="26" cy="92" r="6" fill="#178600"/><text x="38" y="96" font-size="13">C# <tspan fill="#8b949e">10%</tspan></text><circle cx="110" cy="92" r="6" fill="#00ADD8"/><text x="122" y="96" font-size="13">Go <tspan fill="#8b949e">8.6%</tspan></text>
+<text x="20" y="140" font-size="12" fill="#8b949e">Arms: languages · Stars: repositories, sized by stars</text>
+<text x="20" y="156" font-size="12" fill="#8b949e">Ring: one dot per day, taller = busier</text>
+</g>
+</svg>
