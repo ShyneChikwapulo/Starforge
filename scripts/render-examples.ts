@@ -57,6 +57,11 @@ async function main(): Promise<void> {
   await mkdir(join(ROOT, OUTPUT_DIR), { recursive: true });
   await writeFile(join(ROOT, OUTPUT_DIR, 'card.svg'), renderCardSvg(metrics));
   files.push('card.svg');
+  await writeFile(
+    join(ROOT, OUTPUT_DIR, 'card-default.svg'),
+    renderCardSvg(metrics, { skin: 'default' }),
+  );
+  files.push('card-default.svg');
 
   // The preset cards wrap each animation, and the page pieces show how they stack.
   const frameSize = (id: string): { width: number; height: number } => {

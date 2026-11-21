@@ -343,6 +343,7 @@ All keys except `username` are optional.
 | `page`            | `false`                                           | Draw the hero and preset cards as pieces of one stacked page, and also write `footer.svg` (see [Page theme](#page-theme))       |
 | `divider`         | none                                              | With `page`: also write `divider.svg`, a section heading with this title                                                        |
 | `presets`         | none                                              | Several presets in one run, such as `["galaxy", "tree"]`; takes the place of `preset` (see [Several presets](#several-presets)) |
+| `skin`            | `"cyberpunk"`                                     | The look of every card: `"cyberpunk"` or `"default"` (see [Skins](#skins))                                                      |
 | `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                            |
 
 Smaller files are mostly a matter of size and length: the previews in the [gallery](#gallery) are
@@ -608,6 +609,27 @@ URLs and every new image is a new URL:
 Commit the README together with your metrics snapshot, as the
 [example workflow](examples/workflows/starforge.yml) does. The Action's outputs are `directory`
 (where the images were written), `files` (the ones it publishes) and `version`.
+
+## Skins
+
+Every card can be drawn in one of two looks, chosen with `skin`:
+
+- `cyberpunk` (the default): yellow on black, cut corners, a glow, pulsing bars and, on the hero, a
+  jagged display font for your name.
+- `default`: GitHub's own dark colours, rounded corners and flat borders, with no glow, no
+  decoration and no motion but the dial's sweep. A calmer choice for a work profile.
+
+<img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/card.svg" alt="The profile card in the cyberpunk skin" width="49%" />
+<img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/card-default.svg" alt="The profile card in the default skin" width="49%" />
+
+```json
+{ "username": "your-github-login", "skin": "default", "hero": true, "presetCard": true }
+```
+
+The skin applies to every card in a run (the profile card, the hero, the preset cards, the divider
+and the footer), so a page is always consistent. It is not `theme`, which chooses light or dark ink
+for the 3D animations themselves. The default skin is dark only for now, and its cards blend best
+with animations drawn on `background: "github"`.
 
 ## Light and dark pages
 

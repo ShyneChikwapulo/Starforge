@@ -1,7 +1,7 @@
 import type { Metrics } from '@starforge/github-data';
 import { GlyphSet, drawText, escapeXml, measureCardText, type DrawTextStyle } from './card-text';
 import { formatNumber, plural } from './hud';
-import { resolveSkin, type Skin, type SkinName } from './skin';
+import { chipStyle, edgeAttrs, resolveSkin, trackAttrs, type Skin, type SkinName } from './skin';
 import { chromeLayer, type Cap } from './chrome';
 
 /**
@@ -137,6 +137,12 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
     soft: SOFT,
   } = skin.colors;
   const panel = skin.shape;
+  const TITLE = skin.colors.title ?? YELLOW;
+  const LABEL = skin.colors.label ?? YELLOW;
+  const { ornaments, glow } = skin;
+  const edge = (opacity: number): string => edgeAttrs(skin, opacity);
+  const track = (opacity: number): string => trackAttrs(skin, opacity);
+  const chipTheme = chipStyle(skin);
   const squares = (x: number, y: number, totals: number[]): string => {
     const busiest = Math.max(1, ...totals);
     return totals
@@ -157,14 +163,23 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
   const glyphs = new GlyphSet();
   const text = (x: number, y: number, content: string, style: Style): string =>
     drawText(glyphs, x, y, content, { ...style, fill: style.fill ?? WHITE });
-  const label: Style = { size: 14, fill: YELLOW, spacing: 4 };
+  const label: Style = { size: 14, fill: LABEL, spacing: 4 };
   const parts: string[] = [];
 
   // Title bar: the preset's name and three headline numbers.
   parts.push(
-    `<path d="${panel(PAD, 40, CONTENT, 84, { tl: 24, br: 24 })}" fill="${PANEL}" fill-opacity="0.85" stroke="${YELLOW}" stroke-opacity="0.4" stroke-width="1.4"/>`,
-    `<rect class="pulse" x="${PAD + 16}" y="58" width="6" height="48" fill="${YELLOW}" filter="url(#glow)"/>`,
-    text(PAD + 40, 90, clean(preset.name), { size: 40, spacing: 6, fill: YELLOW, filter: 'glow' }),
+    `<path d="${panel(PAD, 40, CONTENT, 84, { tl: 24, br: 24 })}" fill="${PANEL}" fill-opacity="0.85" ${edge(0.4)} stroke-width="1.4"/>`,
+    ...(ornaments
+      ? [
+          `<rect class="pulse" x="${PAD + 16}" y="58" width="6" height="48" fill="${YELLOW}" filter="url(#glow)"/>`,
+        ]
+      : []),
+    text(PAD + 40, 90, clean(preset.name), {
+      size: 40,
+      spacing: 6,
+      fill: TITLE,
+      filter: glow ? 'glow' : undefined,
+    }),
     text(PAD + 42, 112, `@${clean(login)} · LAST 12 MONTHS`, {
       size: 14,
       fill: MUTED,
@@ -182,8 +197,13 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
   chips.forEach((chip, i) => {
     const w = chipWidths[i]!;
     parts.push(
-      `<path d="${panel(chipX, 62, w, 32, { tl: 9, br: 9 })}" fill="${YELLOW}"/>`,
-      text(chipX + w / 2, 84, chip, { size: 15, fill: BG, spacing: 1, anchor: 'middle' }),
+      `<path d="${panel(chipX, 62, w, 32, { tl: 9, br: 9 })}" fill="${chipTheme.fill}"${chipTheme.stroke ? ` stroke="${chipTheme.stroke}"` : ''}/>`,
+      text(chipX + w / 2, 84, chip, {
+        size: 15,
+        fill: chipTheme.text,
+        spacing: 1,
+        anchor: 'middle',
+      }),
     );
     chipX += w + 10;
   });
@@ -194,16 +214,24 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
     `<g clip-path="url(#win)">`,
     `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" fill="${BG}"/>`,
     `<image x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" preserveAspectRatio="xMidYMid slice" href="${media.href}"/>`,
-    `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" fill="url(#scan)"/>`,
-    `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" fill="url(#vignette)"/>`,
+    ...(ornaments
+      ? [
+          `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" fill="url(#scan)"/>`,
+          `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" fill="url(#vignette)"/>`,
+        ]
+      : []),
     `</g>`,
-    `<path d="${panel(box.x, box.y, box.w, box.h, { tl: 22, br: 22 })}" fill="none" stroke="${YELLOW}" stroke-opacity="0.55" stroke-width="1.6"/>`,
-    bracket(box.x + 36, box.y + 14, 1, 1),
-    bracket(box.x + box.w - 14, box.y + 14, -1, 1),
-    bracket(box.x + 14, box.y + box.h - 14, 1, -1),
-    bracket(box.x + box.w - 36, box.y + box.h - 14, -1, -1),
-    `<circle class="live" cx="${box.x + 58}" cy="${box.y + 38}" r="5" fill="${YELLOW}"/>`,
-    text(box.x + 72, box.y + 43, 'LIVE', { size: 13, fill: YELLOW, spacing: 4 }),
+    `<path d="${panel(box.x, box.y, box.w, box.h, { tl: 22, br: 22 })}" fill="none" ${edge(0.55)} stroke-width="1.6"/>`,
+    ...(ornaments
+      ? [
+          bracket(box.x + 36, box.y + 14, 1, 1),
+          bracket(box.x + box.w - 14, box.y + 14, -1, 1),
+          bracket(box.x + 14, box.y + box.h - 14, 1, -1),
+          bracket(box.x + box.w - 36, box.y + box.h - 14, -1, -1),
+          `<circle class="live" cx="${box.x + 58}" cy="${box.y + 38}" r="5" fill="${YELLOW}"/>`,
+          text(box.x + 72, box.y + 43, 'LIVE', { size: 13, fill: YELLOW, spacing: 4 }),
+        ]
+      : []),
   ];
 
   let contentBottom: number;
@@ -223,11 +251,11 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
         y += 44;
       }
       parts.push(
-        `<path d="${panel(x, y, w, 34, { tl: 8, br: 8 })}" fill="${ROW}" stroke="${YELLOW}" stroke-opacity="0.3" stroke-width="1.2"/>`,
+        `<path d="${panel(x, y, w, 34, { tl: 8, br: 8 })}" fill="${ROW}" ${edge(0.3)} stroke-width="1.2"/>`,
       );
       let tx = x + 18;
       if (segment.key) {
-        parts.push(text(tx, y + 23, segment.key, { size: 14, fill: YELLOW, spacing: 3 }));
+        parts.push(text(tx, y + 23, segment.key, { size: 14, fill: LABEL, spacing: 3 }));
         tx += keyWidth + 12;
       }
       parts.push(text(tx, y + 23, segment.meaning, { size: 14, fill: SOFT, spacing: 1 }));
@@ -237,7 +265,7 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
 
     const languages = metrics.languages.slice(0, 6);
     if (languages.length > 0) {
-      parts.push(text(PAD, y + 20, 'LANGUAGES', { size: 13, fill: YELLOW, spacing: 4 }));
+      parts.push(text(PAD, y + 20, 'LANGUAGES', { size: 13, fill: LABEL, spacing: 4 }));
       let lx = PAD + Math.ceil(measureCardText('LANGUAGES', 13, 4)) + 28;
       for (const language of languages) {
         const name = shortName(language.name);
@@ -287,7 +315,7 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
     y += 34;
     for (const segment of segments) {
       if (segment.key) {
-        side.push(text(px, y, segment.key, { size: 20, fill: YELLOW, spacing: 3 }));
+        side.push(text(px, y, segment.key, { size: 20, fill: TITLE, spacing: 3 }));
         y += 26;
       }
       for (const line of wrap(segment.meaning, 15, 1, inner)) {
@@ -297,7 +325,7 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
       y += 16;
     }
     side.push(
-      `<line x1="${px}" y1="${y - 4}" x2="${px + inner}" y2="${y - 4}" stroke="${YELLOW}" stroke-opacity="0.3" stroke-dasharray="5 5"/>`,
+      `<line x1="${px}" y1="${y - 4}" x2="${px + inner}" y2="${y - 4}" ${edge(0.3)} stroke-dasharray="5 5"/>`,
     );
     y += 26;
 
@@ -317,7 +345,7 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
             fill: MUTED,
             anchor: 'end',
           }),
-          `<rect x="${px + 24}" y="${y + 8}" width="${barWidth}" height="3" fill="${YELLOW}" fill-opacity="0.15"/>`,
+          `<rect x="${px + 24}" y="${y + 8}" width="${barWidth}" height="3" ${track(0.15)}/>`,
           `<rect x="${px + 24}" y="${y + 8}" width="${((barWidth * language.share) / top).toFixed(1)}" height="3" fill="${colour}"/>`,
         );
         y += 40;
@@ -336,7 +364,7 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
       side.push(`<g transform="translate(0 ${extra})">${tail.join('')}</g>`);
     }
     parts.push(
-      `<path d="${panel(PAD, TOP, panelW, bodyH, { tl: 30, br: 30 })}" fill="${PANEL}" fill-opacity="0.9" stroke="${YELLOW}" stroke-opacity="0.45" stroke-width="1.4"/>`,
+      `<path d="${panel(PAD, TOP, panelW, bodyH, { tl: 30, br: 30 })}" fill="${PANEL}" fill-opacity="0.9" ${edge(0.45)} stroke-width="1.4"/>`,
       ...side,
     );
     win = { x: mediaX, y: TOP + Math.round((bodyH - mediaH) / 2), w: mediaW, h: mediaH };
@@ -350,21 +378,25 @@ export function renderPresetCardSvg(metrics: Metrics, options: PresetCardOptions
     ? chromeLayer(VIEW_WIDTH, height, options.stack, skin)
     : [
         `<rect width="${VIEW_WIDTH}" height="${height}" fill="${BG}"/>`,
-        `<rect width="${VIEW_WIDTH}" height="${height}" fill="url(#glowTR)"/>`,
-        `<rect width="${VIEW_WIDTH}" height="${height}" fill="url(#glowBL)"/>`,
-        `<path d="${frame}" fill="none" stroke="${YELLOW}" stroke-opacity="0.55" stroke-width="1.6"/>`,
-        `<rect class="pulse" x="92" y="9" width="240" height="7" fill="${YELLOW}" filter="url(#glow)"/>`,
+        ...(glow ? [`<rect width="${VIEW_WIDTH}" height="${height}" fill="url(#glowTR)"/>`] : []),
+        ...(glow ? [`<rect width="${VIEW_WIDTH}" height="${height}" fill="url(#glowBL)"/>`] : []),
+        `<path d="${frame}" fill="none" ${edge(0.55)} stroke-width="1.6"/>`,
+        ...(ornaments
+          ? [
+              `<rect class="pulse" x="92" y="9" width="240" height="7" fill="${YELLOW}" filter="url(#glow)"/>`,
+            ]
+          : []),
       ].join('\n');
   const title = `${preset.name} view of ${login}'s last 12 months of GitHub activity`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${Math.round((width * height) / VIEW_WIDTH)}" viewBox="0 0 ${VIEW_WIDTH} ${height}" role="img" aria-labelledby="preset-title">
 <title id="preset-title">${escapeXml(title)}</title>
 <defs>
-<filter id="glow" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2.6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-<radialGradient id="glowTR" cx="88%" cy="10%" r="60%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.18"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>
-<radialGradient id="glowBL" cx="6%" cy="96%" r="50%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.12"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>
-<radialGradient id="vignette" cx="50%" cy="50%" r="75%"><stop offset="0.6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.45"/></radialGradient>
-<pattern id="scan" width="6" height="4" patternUnits="userSpaceOnUse"><rect width="6" height="1" fill="#000" fill-opacity="0.16"/></pattern>
+${glow ? `<filter id="glow" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2.6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` : ''}
+${glow ? `<radialGradient id="glowTR" cx="88%" cy="10%" r="60%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.18"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>` : ''}
+${glow ? `<radialGradient id="glowBL" cx="6%" cy="96%" r="50%"><stop offset="0" stop-color="${YELLOW}" stop-opacity="0.12"/><stop offset="1" stop-color="${YELLOW}" stop-opacity="0"/></radialGradient>` : ''}
+${ornaments ? `<radialGradient id="vignette" cx="50%" cy="50%" r="75%"><stop offset="0.6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.45"/></radialGradient>` : ''}
+${ornaments ? `<pattern id="scan" width="6" height="4" patternUnits="userSpaceOnUse"><rect width="6" height="1" fill="#000" fill-opacity="0.16"/></pattern>` : ''}
 <clipPath id="win"><path d="${panel(win.x, win.y, win.w, win.h, { tl: 22, br: 22 })}"/></clipPath>
 ${glyphs.definitions()}
 </defs>
