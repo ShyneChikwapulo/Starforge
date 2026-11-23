@@ -7,6 +7,7 @@ import {
   renderCardSvg,
   renderFooterSvg,
   renderHeroSvg,
+  renderInfoCardSvg,
   renderLegendSvg,
   renderLoops,
   renderPresetCardSvg,
@@ -66,6 +67,8 @@ export interface GenerateResult {
   divider?: string;
   /** Present when `page` is enabled. */
   footer?: string;
+  /** One per entry of `infoCards`, in order. */
+  infoCards?: string[];
   /** Present when `legend` is enabled. */
   legend?: string;
   animationBytes: number;
@@ -229,6 +232,20 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     );
   }
 
+  const infoCardPaths: string[] = [];
+  for (const id of config.infoCards ?? []) {
+    const path = join(directory, `${id}-card.svg`);
+    await writeFile(
+      path,
+      renderInfoCardSvg(metrics, {
+        card: id,
+        skin: config.skin,
+        stack: config.page ? 'none' : undefined,
+      }),
+    );
+    infoCardPaths.push(path);
+  }
+
   let footerPath: string | undefined;
   let dividerPath: string | undefined;
   if (config.page) {
@@ -252,6 +269,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     presetCard: first.presetCard,
     divider: dividerPath,
     footer: footerPath,
+    infoCards: infoCardPaths,
     legend: firstVariant.legend,
     animationBytes: firstVariant.animationBytes,
     variants: first.variants,

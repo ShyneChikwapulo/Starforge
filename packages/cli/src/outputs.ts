@@ -14,6 +14,7 @@ export function publishedPaths(result: GenerateResult): string[] {
     result.card,
     result.hero,
     ...result.presets.map((preset) => preset.presetCard),
+    ...(result.infoCards ?? []),
     result.divider,
     result.footer,
   ].filter((path): path is string => Boolean(path));
