@@ -35,6 +35,22 @@ function stressCase(base: Metrics): Metrics {
     ...base,
     languages: languages.map((l) => ({ ...l, share: l.bytes / total })),
     contributions: { ...base.contributions, calendar },
+    pullRequestStats: { opened: 1_234_567, merged: 987_654, mergedAllTime: 2_000_000 },
+    highlights: {
+      pinned: [],
+      notable: {
+        mergedPullRequests: 4321,
+        repositories: Array.from({ length: 10 }, (_, i) => ({
+          nameWithOwner:
+            i === 1
+              ? 'a-very-long-organisation-name-that-keeps-going/an-equally-long-repository-name-for-testing'
+              : `org-${i + 1}/project-${i + 1}`,
+          url: `https://github.com/org-${i + 1}/project-${i + 1}`,
+          stars: i < 7 ? Math.round(250_000 / (i + 1) ** 3) : 0,
+          mergedPullRequests: 1,
+        })),
+      },
+    },
   };
 }
 
