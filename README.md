@@ -344,6 +344,7 @@ All keys except `username` are optional.
 | `divider`         | none                                              | With `page`: also write `divider.svg`, a section heading with this title                                                        |
 | `presets`         | none                                              | Several presets in one run, such as `["galaxy", "tree"]`; takes the place of `preset` (see [Several presets](#several-presets)) |
 | `skin`            | `"cyberpunk"`                                     | The look of every card: `"cyberpunk"` or `"default"` (see [Skins](#skins))                                                      |
+| `infoCards`       | none                                              | Info cards to draw, such as `["languages", "heatmap"]`; each is written as `<id>-card.svg` (see [Info cards](#info-cards))      |
 | `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                            |
 
 Smaller files are mostly a matter of size and length: the previews in the [gallery](#gallery) are
@@ -474,6 +475,45 @@ A few things worth knowing:
 - As with the other cards, the text is vector outlines and the motion is plain CSS; a viewer that
   prefers reduced motion sees the chrome still.
 
+## Info cards
+
+Plain cards made of numbers, bars and grids: no 3D and no animation, just your data laid out to be read at a glance. Each one is drawn in a frame like the preset cards, with headline chips on the title bar and a legend underneath that says what the numbers are and where they come from.
+
+```json
+{ "username": "your-github-login", "infoCards": ["languages", "heatmap"] }
+```
+
+<img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/languages-card.svg" alt="The languages info card, built from sample GitHub activity" width="100%" />
+
+<img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/heatmap-card.svg" alt="The activity heatmap info card, built from sample GitHub activity" width="100%" />
+
+The Action publishes `<id>-card.svg` (here `languages-card.svg` and `heatmap-card.svg`) next to the other images. Embed each one full width:
+
+```html
+<img
+  src="https://raw.githubusercontent.com/YOUR-LOGIN/YOUR-REPO/starforge-assets/languages-card.svg"
+  alt="My languages by share of code"
+  width="100%"
+/>
+```
+
+| Card        | Chips                                      | What it shows                                                                                                                                     |
+| ----------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `languages` | Number of languages, total size of code    | Share of code as one stacked bar, then the largest ten languages with their size, the number of repositories and their share; the rest are summed |
+| `heatmap`   | Contributions, active days, longest streak | One cell per day of the last 12 months, a column per week, in the skin's colours                                                                  |
+
+Each legend states its own rules, so the numbers are never a mystery:
+
+- **Languages** counts bytes of code in your public repositories that are not forks, as GitHub counts them. Archived repositories are included.
+- **Heatmap** counts commits, pull requests, issues and reviews, as your GitHub profile shows them. The colour steps are quartiles of your own busy days, so they show how a day compares with your other days, not a raw count.
+
+A few things worth knowing:
+
+- Info cards take the `skin` like every other card. In the default skin the heatmap uses GitHub's greens.
+- Every card is 1200 units wide and as tall as its content, rounded up to a multiple of 60, so cards shown at full width line up and stack neatly.
+- Names are set in capitals, and characters the baked font does not have are dropped.
+- As with the other cards, the text is vector outlines and the only motion is the pulsing edge, which a viewer that prefers reduced motion sees still.
+
 ## Page theme
 
 Cards drawn on their own are closed frames. With `page: true` the hero and the preset cards are
@@ -522,6 +562,7 @@ A few things worth knowing:
 - The page is dark, so `page` works with `theme` set to `"dark"` or `"both"` but not `"light"`.
 - The compact profile card (`card`) is a separate 800 × 500 card and is not part of the page.
 - To draw several presets in one run, set `presets` (see [Several presets](#several-presets)).
+- Info cards (`infoCards`) are drawn as pieces of the page too, with no cap, so they stack like the preset cards.
 
 ## Several presets
 
