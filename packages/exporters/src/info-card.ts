@@ -14,6 +14,7 @@ import {
   type InfoTextStyle,
 } from './info-kit';
 import { languagesCard } from './info-languages';
+import { openSourceCard } from './info-opensource';
 import { chipStyle, edgeAttrs, resolveSkin, trackAttrs, type Skin, type SkinName } from './skin';
 
 export { INFO_CARD_IDS, type InfoCardId };
@@ -32,6 +33,7 @@ const TOP = 148;
 const CARDS: Record<InfoCardId, InfoCardDef> = {
   languages: languagesCard,
   heatmap: heatmapCard,
+  opensource: openSourceCard,
 };
 
 export interface InfoCardOptions {
