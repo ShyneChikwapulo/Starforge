@@ -480,7 +480,7 @@ A few things worth knowing:
 Plain cards made of numbers, bars and grids: no 3D and no animation, just your data laid out to be read at a glance. Each one is drawn in a frame like the preset cards, with headline chips on the title bar and a legend underneath that says what the numbers are and where they come from.
 
 ```json
-{ "username": "your-github-login", "infoCards": ["languages", "heatmap", "opensource"] }
+{ "username": "your-github-login", "infoCards": ["languages", "heatmap", "opensource", "rhythm"] }
 ```
 
 <img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/languages-card.svg" alt="The languages info card, built from sample GitHub activity" width="100%" />
@@ -488,6 +488,8 @@ Plain cards made of numbers, bars and grids: no 3D and no animation, just your d
 <img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/heatmap-card.svg" alt="The activity heatmap info card, built from sample GitHub activity" width="100%" />
 
 <img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/opensource-card.svg" alt="The open source info card, built from sample GitHub activity" width="100%" />
+
+<img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/rhythm-card.svg" alt="The rhythm info card, built from sample GitHub activity" width="100%" />
 
 The Action publishes `<id>-card.svg` (here `languages-card.svg` and `heatmap-card.svg`) next to the other images. Embed each one full width:
 
@@ -504,12 +506,14 @@ The Action publishes `<id>-card.svg` (here `languages-card.svg` and `heatmap-car
 | `languages`  | Number of languages, total size of code    | Share of code as one stacked bar, then the largest ten languages with their size, the number of repositories and their share; the rest are summed                                  |
 | `heatmap`    | Contributions, active days, longest streak | One cell per day of the last 12 months, a column per week, in the skin's colours                                                                                                   |
 | `opensource` | Merged all time, merge rate, reviews       | Pull requests you opened and had merged in the last 12 months, the merge rate, and up to six projects you do not own that you have had pull requests merged into, with their stars |
+| `rhythm`     | Busiest weekday, peak month                | Your contributions summed by weekday and by month over the last 12 months, as two bar charts; the first and last month are partial and drawn with a dashed outline                 |
 
 Each legend states its own rules, so the numbers are never a mystery:
 
 - **Languages** counts bytes of code in your public repositories that are not forks, as GitHub counts them. Archived repositories are included. It reads up to your 500 most starred repositories, and the 10 largest languages of each.
 - **Heatmap** counts commits, pull requests, issues and reviews, as your GitHub profile shows them. The colour steps are quartiles of your own busy days, so they show how a day compares with your other days, not a raw count.
 - **Open source** counts the pull requests you opened in the last 12 months and how many of those are merged, so one that is still open counts against the merge rate. The list shows repositories you do not own, most stars first, taken from your 100 most recently updated merged pull requests, and its bars use a log scale. Reviews are as your profile shows them.
+- **Rhythm** sums the same daily counts as the heatmap by weekday and by calendar month. These are totals, not averages, and each chart has its own scale. The first and last month are partial and drawn with a dashed outline.
 
 A few things worth knowing:
 
