@@ -15,6 +15,7 @@ import { generate } from '../packages/cli/src/generate';
 import {
   renderCardSvg,
   renderFooterSvg,
+  renderInfoCardSvg,
   renderPresetCardSvg,
   renderSectionSvg,
 } from '../packages/exporters/src/index';
@@ -82,6 +83,8 @@ async function main(): Promise<void> {
     ['atom-card.svg', await cardFor('atom')],
     ['tree-page.svg', await cardFor('tree', 'none')],
     ['chess-page.svg', await cardFor('chess', 'none')],
+    ['languages-card.svg', renderInfoCardSvg(metrics, { card: 'languages' })],
+    ['heatmap-card.svg', renderInfoCardSvg(metrics, { card: 'heatmap' })],
     ['page-divider.svg', renderSectionSvg('Presets', { subtitle: 'Five ways to see one year' })],
     ['page-footer.svg', renderFooterSvg(metrics)],
   ];

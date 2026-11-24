@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { PRESET_IDS } from '@starforge/presets';
-import { SKIN_NAMES } from '@starforge/exporters';
+import { INFO_CARD_IDS, SKIN_NAMES } from '@starforge/exporters';
 import { z } from 'zod';
 
 export const ConfigSchema = z
@@ -56,6 +56,11 @@ export const ConfigSchema = z
      */
     skin: z.enum(SKIN_NAMES).default('cyberpunk'),
     /**
+     * Info cards to draw: plain cards of numbers, bars and grids, such as "languages" and
+     * "heatmap". Each is written as <id>-card.svg.
+     */
+    infoCards: z.array(z.enum(INFO_CARD_IDS)).optional(),
+    /**
      * "dark" is the original look. "light" is drawn for white pages. "both" writes the dark set
      * and a second set named with "-light", so a README can pick one with a <picture> element.
      */
@@ -91,6 +96,13 @@ export const ConfigSchema = z
     message: 'page draws on a dark background, so theme must be "dark" or "both"',
     path: ['theme'],
   })
+  .refine(
+    (config) => !config.infoCards || new Set(config.infoCards).size === config.infoCards.length,
+    {
+      message: 'infoCards lists the same card twice',
+      path: ['infoCards'],
+    },
+  )
   .refine((config) => !config.divider || config.page, {
     message: 'divider is a piece of the page, so it needs page: true',
     path: ['divider'],

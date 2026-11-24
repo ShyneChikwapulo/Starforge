@@ -8,5 +8,6 @@ export * from './hero';
 export * from './preset-card';
 export * from './chrome';
 export * from './skin';
+export * from './info-card';
 export * from './page-pieces';
 export { measureCardText } from './card-text';
