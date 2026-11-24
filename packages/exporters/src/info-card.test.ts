@@ -110,6 +110,8 @@ describe('the languages card', () => {
     const svg = renderInfoCardSvg(base, { card: 'languages' });
     expect(legendText(svg)).toContain('PUBLIC REPOSITORIES THAT ARE NOT FORKS');
     expect(legendText(svg)).toContain('ARCHIVED REPOSITORIES ARE INCLUDED');
+    expect(legendText(svg)).toContain('UP TO YOUR 500 MOST STARRED REPOSITORIES ARE READ');
+    expect(legendText(svg)).toContain('THE 10 LARGEST LANGUAGES OF EACH');
   });
 
   it('shows the biggest ten and says how many more there are', () => {

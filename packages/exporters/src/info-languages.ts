@@ -31,7 +31,8 @@ export const languagesCard: InfoCardDef = {
   },
   legend: (m) =>
     'Share of code, by size, in your public repositories that are not forks, as GitHub counts it. ' +
-    'Archived repositories are included.' +
+    'Archived repositories are included. ' +
+    'Up to your 500 most starred repositories are read, and the 10 largest languages of each.' +
     (m.languages.length > SHOWN ? ` Showing the largest ${SHOWN} of ${m.languages.length}.` : ''),
 
   body(ctx: InfoCtx, top: number) {
