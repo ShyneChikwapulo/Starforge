@@ -7,7 +7,7 @@ import type { Skin } from './skin';
  * that are drawn in a frame of their own and in any skin.
  */
 
-export const INFO_CARD_IDS = ['languages', 'heatmap', 'opensource'] as const;
+export const INFO_CARD_IDS = ['languages', 'heatmap', 'opensource', 'rhythm'] as const;
 export type InfoCardId = (typeof INFO_CARD_IDS)[number];
 
 export const PAD = 48;
