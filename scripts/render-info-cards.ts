@@ -51,7 +51,6 @@ async function main(): Promise<void> {
   ];
   for (const skin of ['cyberpunk', 'default'] as const) {
     for (const [prefix, metrics] of cases) {
-      if (prefix && skin === 'cyberpunk' && false) continue;
       for (const card of INFO_CARD_IDS) {
         const svg = renderInfoCardSvg(metrics, { card, skin });
         const png = new Resvg(svg, { fitTo: { mode: 'width', value: 900 } }).render().asPng();
