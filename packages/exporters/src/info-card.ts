@@ -15,6 +15,7 @@ import {
 } from './info-kit';
 import { languagesCard } from './info-languages';
 import { openSourceCard } from './info-opensource';
+import { rhythmCard } from './info-rhythm';
 import { chipStyle, edgeAttrs, resolveSkin, trackAttrs, type Skin, type SkinName } from './skin';
 
 export { INFO_CARD_IDS, type InfoCardId };
@@ -34,6 +35,7 @@ const CARDS: Record<InfoCardId, InfoCardDef> = {
   languages: languagesCard,
   heatmap: heatmapCard,
   opensource: openSourceCard,
+  rhythm: rhythmCard,
 };
 
 export interface InfoCardOptions {
