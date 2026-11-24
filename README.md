@@ -79,7 +79,7 @@ These previews are rendered from built-in sample data, so you can reproduce them
 ## How it works
 
 1. **Collect.** Starforge reads three things from the GitHub API: your contribution calendar for
-   the last 12 months, your public repositories (the 100 with the most stars), and the languages
+   the last 12 months, your public repositories (up to 500, the most starred first), and the languages
    you use, weighted by share of code.
 2. **Build.** A preset turns that data into a 3D scene. Every dot that carries data is tied to a
    real thing: a day, a repository or a contribution. Everything else is decoration, and each
@@ -504,7 +504,7 @@ The Action publishes `<id>-card.svg` (here `languages-card.svg` and `heatmap-car
 
 Each legend states its own rules, so the numbers are never a mystery:
 
-- **Languages** counts bytes of code in your public repositories that are not forks, as GitHub counts them. Archived repositories are included.
+- **Languages** counts bytes of code in your public repositories that are not forks, as GitHub counts them. Archived repositories are included. It reads up to your 500 most starred repositories, and the 10 largest languages of each.
 - **Heatmap** counts commits, pull requests, issues and reviews, as your GitHub profile shows them. The colour steps are quartiles of your own busy days, so they show how a day compares with your other days, not a raw count.
 
 A few things worth knowing:
