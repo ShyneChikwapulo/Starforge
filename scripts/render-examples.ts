@@ -85,6 +85,7 @@ async function main(): Promise<void> {
     ['chess-page.svg', await cardFor('chess', 'none')],
     ['languages-card.svg', renderInfoCardSvg(metrics, { card: 'languages' })],
     ['heatmap-card.svg', renderInfoCardSvg(metrics, { card: 'heatmap' })],
+    ['opensource-card.svg', renderInfoCardSvg(metrics, { card: 'opensource' })],
     ['page-divider.svg', renderSectionSvg('Presets', { subtitle: 'Five ways to see one year' })],
     ['page-footer.svg', renderFooterSvg(metrics)],
   ];
