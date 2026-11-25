@@ -322,30 +322,31 @@ With no `repo` or `user` it shows sample data.
 
 All keys except `username` are optional.
 
-| Key               | Default                                           | Meaning                                                                                                                         |
-| ----------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `username`        | required                                          | GitHub login to visualise                                                                                                       |
-| `preset`          | `"galaxy"`                                        | `"galaxy"`, `"tunnel"`, `"tree"`, `"atom"` or `"chess"`. Output files are named after it, for example `atom.webp`               |
-| `outputDir`       | `"starforge"`                                     | Where files are written                                                                                                         |
-| `format`          | `"webp"`                                          | `"webp"` (small, lossy) or `"apng"` (lossless, large)                                                                           |
-| `width`, `height` | the preset's own size                             | Pixel size: width 32 to 1600, height 32 to 1000                                                                                 |
-| `frames`, `fps`   | `60`, `15`                                        | Loop length (2 to 240 frames) and speed (1 to 60)                                                                               |
-| `quality`         | `80`                                              | Lossy WebP quality, 0 to 100                                                                                                    |
-| `bloom`           | `0.9`                                             | Glow strength, 0 to 3; `0` turns it off. Solid parts (the tree's wood, the atom's balls) never glow                             |
-| `seed`            | `1`                                               | Changes the scattered dust, not your data                                                                                       |
-| `legend`          | `true`                                            | Also write `<preset>-legend.svg`, a caption strip that spells out the data                                                      |
-| `card`            | `false`                                           | Also write `card.svg`, a neon HUD profile card (see [Profile card](#profile-card))                                              |
-| `theme`           | `"dark"`                                          | `"dark"`, `"light"` or `"both"`. `both` also writes a second set named with `-light`, drawn for white pages                     |
-| `background`      | navy for a plain `dark` run, `"github"` otherwise | `"github"`, `"transparent"`, or a page colour such as `"#0d1117"` (see [Light and dark pages](#light-and-dark-pages))           |
-| `hero`            | `false`                                           | Also write `hero.svg`, a large neon HUD banner and profile card (see [Hero card](#hero-card))                                   |
-| `heroCharacter`   | none                                              | A folder with `sprite.webp` and `meta.json`: the hero card's animated character                                                 |
-| `presetCard`      | `false`                                           | Also write `<preset>-card.svg`, the animation inside a neon HUD card (see [Preset cards](#preset-cards))                        |
-| `page`            | `false`                                           | Draw the hero and preset cards as pieces of one stacked page, and also write `footer.svg` (see [Page theme](#page-theme))       |
-| `divider`         | none                                              | With `page`: also write `divider.svg`, a section heading with this title                                                        |
-| `presets`         | none                                              | Several presets in one run, such as `["galaxy", "tree"]`; takes the place of `preset` (see [Several presets](#several-presets)) |
-| `skin`            | `"cyberpunk"`                                     | The look of every card: `"cyberpunk"` or `"default"` (see [Skins](#skins))                                                      |
-| `infoCards`       | none                                              | Info cards to draw, such as `["languages", "heatmap"]`; each is written as `<id>-card.svg` (see [Info cards](#info-cards))      |
-| `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                            |
+| Key               | Default                                           | Meaning                                                                                                                               |
+| ----------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `username`        | required                                          | GitHub login to visualise                                                                                                             |
+| `preset`          | `"galaxy"`                                        | `"galaxy"`, `"tunnel"`, `"tree"`, `"atom"` or `"chess"`. Output files are named after it, for example `atom.webp`                     |
+| `outputDir`       | `"starforge"`                                     | Where files are written                                                                                                               |
+| `format`          | `"webp"`                                          | `"webp"` (small, lossy) or `"apng"` (lossless, large)                                                                                 |
+| `width`, `height` | the preset's own size                             | Pixel size: width 32 to 1600, height 32 to 1000                                                                                       |
+| `frames`, `fps`   | `60`, `15`                                        | Loop length (2 to 240 frames) and speed (1 to 60)                                                                                     |
+| `quality`         | `80`                                              | Lossy WebP quality, 0 to 100                                                                                                          |
+| `bloom`           | `0.9`                                             | Glow strength, 0 to 3; `0` turns it off. Solid parts (the tree's wood, the atom's balls) never glow                                   |
+| `seed`            | `1`                                               | Changes the scattered dust, not your data                                                                                             |
+| `legend`          | `true`                                            | Also write `<preset>-legend.svg`, a caption strip that spells out the data                                                            |
+| `card`            | `false`                                           | Also write `card.svg`, a neon HUD profile card (see [Profile card](#profile-card))                                                    |
+| `theme`           | `"dark"`                                          | `"dark"`, `"light"` or `"both"`. `both` also writes a second set named with `-light`, drawn for white pages                           |
+| `background`      | navy for a plain `dark` run, `"github"` otherwise | `"github"`, `"transparent"`, or a page colour such as `"#0d1117"` (see [Light and dark pages](#light-and-dark-pages))                 |
+| `hero`            | `false`                                           | Also write `hero.svg`, a large neon HUD banner and profile card (see [Hero card](#hero-card))                                         |
+| `heroCharacter`   | none                                              | A folder with `sprite.webp` and `meta.json`: the hero card's animated character                                                       |
+| `presetCard`      | `false`                                           | Also write `<preset>-card.svg`, the animation inside a neon HUD card (see [Preset cards](#preset-cards))                              |
+| `page`            | `false`                                           | Draw the hero and preset cards as pieces of one stacked page, and also write `footer.svg` (see [Page theme](#page-theme))             |
+| `divider`         | none                                              | With `page`: also write `divider.svg`, a section heading with this title                                                              |
+| `presets`         | none                                              | Several presets in one run, such as `["galaxy", "tree"]`; takes the place of `preset` (see [Several presets](#several-presets))       |
+| `skin`            | `"cyberpunk"`                                     | The look of every card: `"cyberpunk"` or `"default"` (see [Skins](#skins))                                                            |
+| `skinAccent`      | none                                              | The accent colour of the `"default"` skin, as `"#rrggbb"` or `"#rgb"`; the cyberpunk skin keeps its own colours (see [Skins](#skins)) |
+| `infoCards`       | none                                              | Info cards to draw, such as `["languages", "heatmap"]`; each is written as `<id>-card.svg` (see [Info cards](#info-cards))            |
+| `saveMetrics`     | `true`                                            | Also write a `metrics.json` snapshot                                                                                                  |
 
 Smaller files are mostly a matter of size and length: the previews in the [gallery](#gallery) are
 480 pixels wide, 48 frames at 16 fps, quality 70.
@@ -679,6 +680,17 @@ The skin applies to every card in a run (the profile card, the hero, the preset 
 and the footer), so a page is always consistent. It is not `theme`, which chooses light or dark ink
 for the 3D animations themselves. The default skin is dark only for now, and its cards blend best
 with animations drawn on `background: "github"`.
+
+The `default` skin takes your own accent colour with `skinAccent`, as `"#rrggbb"` or `"#rgb"`:
+
+```json
+{ "username": "your-github-login", "skin": "default", "skinAccent": "#ff2e88" }
+```
+
+It recolours the bars, rings and heatmap steps on every card and page piece. The 3D animations keep
+their own palettes. The accent has to stand out against the card background, with a contrast of at
+least 3:1, or the run stops with an error that says by how much it misses. The cyberpunk skin keeps
+its own colours, so setting `skinAccent` with it is also an error.
 
 ## Light and dark pages
 
