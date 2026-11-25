@@ -1,9 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import {
+  createDefaultSkin,
   encodeApng,
   encodePng,
   encodeWebp,
+  normalizeHex,
   renderCardSvg,
   renderFooterSvg,
   renderHeroSvg,
@@ -12,6 +14,8 @@ import {
   renderLoops,
   renderPresetCardSvg,
   renderSectionSvg,
+  type Skin,
+  type SkinName,
 } from '@starforge/exporters';
 import { collectMetrics, createGraphQLClient, type Metrics } from '@starforge/github-data';
 import { getPreset } from '@starforge/presets';
@@ -95,6 +99,11 @@ async function writeMetricsSnapshot(path: string, metrics: Metrics): Promise<voi
   await writeFile(path, `${JSON.stringify(metrics, null, 2)}\n`);
 }
 
+/** The skin to draw with: the named skin, or the default skin in the user's accent colour. */
+function skinOf(config: StarforgeConfig): SkinName | Skin {
+  return config.skinAccent ? createDefaultSkin(normalizeHex(config.skinAccent)!) : config.skin;
+}
+
 /** Render one preset in every look, and write its files. */
 async function generatePreset(
   config: StarforgeConfig,
@@ -171,7 +180,7 @@ async function generatePreset(
       presetCardPath,
       renderPresetCardSvg(metrics, {
         stack: config.page ? 'none' : undefined,
-        skin: config.skin,
+        skin: skinOf(config),
         preset,
         media: { href: `data:${type};base64,${animation.toString('base64')}`, width, height },
       }),
@@ -213,7 +222,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   let cardPath: string | undefined;
   if (config.card) {
     cardPath = join(directory, 'card.svg');
-    await writeFile(cardPath, renderCardSvg(metrics, { skin: config.skin }));
+    await writeFile(cardPath, renderCardSvg(metrics, { skin: skinOf(config) }));
   }
 
   let heroPath: string | undefined;
@@ -227,7 +236,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       renderHeroSvg(metrics, {
         character,
         stack: config.page ? 'top' : undefined,
-        skin: config.skin,
+        skin: skinOf(config),
       }),
     );
   }
@@ -239,7 +248,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       path,
       renderInfoCardSvg(metrics, {
         card: id,
-        skin: config.skin,
+        skin: skinOf(config),
         stack: config.page ? 'none' : undefined,
       }),
     );
@@ -250,10 +259,10 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   let dividerPath: string | undefined;
   if (config.page) {
     footerPath = join(directory, 'footer.svg');
-    await writeFile(footerPath, renderFooterSvg(metrics, { skin: config.skin }));
+    await writeFile(footerPath, renderFooterSvg(metrics, { skin: skinOf(config) }));
     if (config.divider) {
       dividerPath = join(directory, 'divider.svg');
-      await writeFile(dividerPath, renderSectionSvg(config.divider, { skin: config.skin }));
+      await writeFile(dividerPath, renderSectionSvg(config.divider, { skin: skinOf(config) }));
     }
   }
 

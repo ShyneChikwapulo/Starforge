@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { PRESET_IDS } from '@starforge/presets';
-import { INFO_CARD_IDS, SKIN_NAMES } from '@starforge/exporters';
+import { INFO_CARD_IDS, SKIN_NAMES, accentProblem } from '@starforge/exporters';
 import { z } from 'zod';
 
 export const ConfigSchema = z
@@ -56,6 +56,11 @@ export const ConfigSchema = z
      */
     skin: z.enum(SKIN_NAMES).default('cyberpunk'),
     /**
+     * The accent colour of the "default" skin, as "#rrggbb" or "#rgb": its bars, rings and heatmap
+     * steps. The cyberpunk skin keeps its own colours, so this needs `skin: "default"`.
+     */
+    skinAccent: z.string().optional(),
+    /**
      * Info cards to draw: plain cards of numbers, bars and grids, such as "languages" and
      * "heatmap". Each is written as <id>-card.svg.
      */
@@ -110,6 +115,14 @@ export const ConfigSchema = z
   .refine((config) => !config.presets || new Set(config.presets).size === config.presets.length, {
     message: 'presets lists the same preset twice',
     path: ['presets'],
+  })
+  .superRefine((config, context) => {
+    if (config.skinAccent === undefined) return;
+    const problem =
+      config.skin !== 'default'
+        ? 'skinAccent recolours the "default" skin only; the cyberpunk look keeps its own colours, so set skin to "default"'
+        : accentProblem(config.skinAccent);
+    if (problem) context.addIssue({ code: 'custom', message: problem, path: ['skinAccent'] });
   });
 
 export type StarforgeConfig = z.infer<typeof ConfigSchema>;
