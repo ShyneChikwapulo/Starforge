@@ -151,3 +151,40 @@ export function resolveSkin(skin?: SkinName | Skin): Skin {
   if (!skin) return CYBERPUNK;
   return typeof skin === 'string' ? SKINS[skin] : skin;
 }
+
+/** `#rgb` or `#rrggbb` as lowercase `#rrggbb`, or null when it is neither. */
+export function normalizeHex(value: string): string | null {
+  const match = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(value);
+  if (!match) return null;
+  const digits = match[1]!.toLowerCase();
+  return `#${digits.length === 3 ? [...digits].map((digit) => digit + digit).join('') : digits}`;
+}
+
+function luminance(hex: string): number {
+  const channel = (offset: number): number => {
+    const value = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+}
+
+/** The WCAG contrast ratio of two `#rrggbb` colours: 1 for the same colour, 21 for black on white. */
+export function contrastRatio(a: string, b: string): number {
+  const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (light! + 0.05) / (dark! + 0.05);
+}
+
+/** The least contrast an accent may have against the default skin's background. */
+export const MIN_ACCENT_CONTRAST = 3;
+
+/** Why `accent` cannot be used on the default skin, or null when it can. */
+export function accentProblem(accent: string): string | null {
+  const hex = normalizeHex(accent);
+  if (!hex) return `skinAccent must be a colour such as "#ff2e88" or "#f28", got "${accent}"`;
+  const background = createDefaultSkin().colors.bg;
+  const ratio = contrastRatio(hex, background);
+  if (ratio < MIN_ACCENT_CONTRAST) {
+    return `skinAccent ${hex} is too dark to see on the default skin: its contrast against ${background} is ${ratio.toFixed(1)}:1 and it needs at least ${MIN_ACCENT_CONTRAST}:1`;
+  }
+  return null;
+}
