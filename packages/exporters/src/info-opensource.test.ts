@@ -92,6 +92,18 @@ describe('the open source card', () => {
     expect(svg).not.toContain('NaN');
   });
 
+  it('leaves out the reviews chip and its legend sentence when there are none', () => {
+    const svg = render({ ...base, contributions: { ...base.contributions, reviews: 0 } });
+    expect(svg).not.toContain('REVIEW');
+    expect(svg).toContain('MERGE RATE');
+  });
+
+  it('shows the reviews chip and its legend sentence when there are some', () => {
+    const svg = render({ ...base, contributions: { ...base.contributions, reviews: 1 } });
+    expect(svg).toContain('aria-label="1 REVIEW"');
+    expect(labels(svg)).toContain('AS YOUR PROFILE SHOWS THEM');
+  });
+
   it('copes with repositories that have no stars, and with huge numbers', () => {
     const none = render(withRepos([repo('a/b', 0), repo('c/d', 0)]));
     expect(none).not.toContain('NaN');
