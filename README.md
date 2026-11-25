@@ -95,7 +95,7 @@ Everything is deterministic: the same data, preset and seed always produce the s
 ### Use the template
 
 The fastest way is the [starforge-template](https://github.com/ShyneChikwapulo/starforge-template) repository: a complete profile README
-(the hero, the five presets and a footer) with the workflow already set up.
+(the hero, the atom preset, four info cards and a footer) with the workflow already set up.
 
 1. [Create a repository from the template](https://github.com/new?template_name=starforge-template&template_owner=ShyneChikwapulo). Name it **exactly your GitHub username** and
    make it public: that name is what makes GitHub show its README on your profile.
@@ -491,7 +491,7 @@ Plain cards made of numbers, bars and grids: no 3D and no animation, just your d
 
 <img src="https://raw.githubusercontent.com/ShyneChikwapulo/Starforge/examples/rhythm-card.svg" alt="The rhythm info card, built from sample GitHub activity" width="100%" />
 
-The Action publishes `<id>-card.svg` (here `languages-card.svg` and `heatmap-card.svg`) next to the other images. Embed each one full width:
+The Action publishes `<id>-card.svg` (for example `languages-card.svg`) next to the other images. Embed each one full width:
 
 ```html
 <img
@@ -530,6 +530,7 @@ joins the next without a seam, so a README made of them reads as a single HUD. T
 
 - the **hero**, with a cap along the top,
 - any number of **preset cards**, with no cap,
+- any number of **info cards** (`infoCards`), also with no cap,
 - an optional **divider** (`"divider": "Presets"`), a section heading, and
 - a **footer**, which closes the page with a bottom cap.
 
@@ -570,7 +571,6 @@ A few things worth knowing:
 - The page is dark, so `page` works with `theme` set to `"dark"` or `"both"` but not `"light"`.
 - The compact profile card (`card`) is a separate 800 × 500 card and is not part of the page.
 - To draw several presets in one run, set `presets` (see [Several presets](#several-presets)).
-- Info cards (`infoCards`) are drawn as pieces of the page too, with no cap, so they stack like the preset cards.
 
 ## Several presets
 
@@ -723,9 +723,7 @@ made them. Then let the page pick one with a `<picture>` element; the dark image
 </picture>
 ```
 
-Do the same for the legend, with `atom-light-legend.svg` and `atom-legend.svg`. The `<picture>`
-element follows your browser's colour scheme, which matches GitHub's theme when GitHub is set to
-follow your system.
+Do the same for the legend, with `atom-light-legend.svg` and `atom-legend.svg`. On GitHub the `<picture>` element follows GitHub's own theme setting (Settings, then Appearance), not only your operating system's: a single theme chosen there wins over the system setting, and "Sync with system" follows the system.
 
 ## Privacy
 
