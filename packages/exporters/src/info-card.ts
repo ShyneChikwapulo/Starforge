@@ -14,6 +14,7 @@ import {
   type InfoTextStyle,
 } from './info-kit';
 import { languagesCard } from './info-languages';
+import { avoidWidow } from './info-legend';
 import { openSourceCard } from './info-opensource';
 import { rhythmCard } from './info-rhythm';
 import { chipStyle, edgeAttrs, resolveSkin, trackAttrs, type Skin, type SkinName } from './skin';
@@ -145,7 +146,12 @@ export function renderInfoCardSvg(metrics: Metrics, options: InfoCardOptions): s
     `<line x1="${PAD}" y1="${ruleY}" x2="${PAD + CONTENT}" y2="${ruleY}" ${edge(0.3)} stroke-dasharray="5 5"/>`,
   );
   const legendY = ruleY + 28;
-  const lines = wrap(clean(def.legend(metrics)), 13, 1, CONTENT - 240).slice(0, 3);
+  const lines = avoidWidow(
+    wrap(clean(def.legend(metrics)), 13, 1, CONTENT - 240),
+    13,
+    1,
+    CONTENT - 240,
+  ).slice(0, 3);
   lines.forEach((line, i) => {
     parts.push(text(PAD, legendY + i * 20, line, { size: 13, fill: MUTED, spacing: 1 }));
   });
