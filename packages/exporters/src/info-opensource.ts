@@ -51,14 +51,17 @@ export const openSourceCard: InfoCardDef = {
       if (rate !== null) chips.push(`${rateText(stats, rate)} MERGE RATE`);
     }
     const reviews = m.contributions.reviews;
-    chips.push(`${formatNumber(reviews)} ${plural(reviews, 'REVIEW', 'REVIEWS')}`);
+    if (reviews > 0) {
+      chips.push(`${formatNumber(reviews)} ${plural(reviews, 'REVIEW', 'REVIEWS')}`);
+    }
     return chips;
   },
-  legend: () =>
+  legend: (m) =>
     'Opened and merged are pull requests you opened in the last 12 months; merge rate is merged ' +
     'over opened, so open ones count against it. The list shows up to six repositories you do not ' +
     'own, most stars first (bars: log scale), from your 100 most recently updated merged pull ' +
-    'requests. Reviews are as your profile shows them.',
+    'requests.' +
+    (m.contributions.reviews > 0 ? ' Reviews are as your profile shows them.' : ''),
 
   body(ctx: InfoCtx, top: number) {
     const { metrics, colors, text } = ctx;

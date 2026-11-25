@@ -84,7 +84,7 @@ export const languagesCard: InfoCardDef = {
     const gutter = 56;
     const colW = twoColumns ? (CONTENT - gutter) / 2 : CONTENT;
     const perColumn = twoColumns ? Math.ceil(shown.length / 2) : shown.length;
-    const rowH = 64;
+    const rowH = 68;
     const startY = top + barH + 50;
     const peak = shown[0]!.share || 1;
     shown.forEach((language, i) => {
@@ -102,7 +102,7 @@ export const languagesCard: InfoCardDef = {
         `<rect x="${lx + 32}" y="${y + 12}" width="${Math.max(2, (barW * language.share) / peak).toFixed(1)}" height="5" fill="${colour}"/>`,
         text(
           lx + 32,
-          y + 38,
+          y + 34,
           `${formatBytes(language.bytes)} · ${language.repoCount} ${plural(language.repoCount, 'REPO', 'REPOS')}`,
           { size: 13, fill: colors.muted, spacing: 2 },
         ),
