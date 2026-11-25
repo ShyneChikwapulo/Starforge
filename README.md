@@ -512,7 +512,7 @@ Each legend states its own rules, so the numbers are never a mystery:
 
 - **Languages** counts bytes of code in your public repositories that are not forks, as GitHub counts them. Archived repositories are included. It reads up to your 500 most starred repositories, and the 10 largest languages of each.
 - **Heatmap** counts commits, pull requests, issues and reviews, as your GitHub profile shows them. The colour steps are quartiles of your own busy days, so they show how a day compares with your other days, not a raw count.
-- **Open source** counts the pull requests you opened in the last 12 months and how many of those are merged, so one that is still open counts against the merge rate. The list shows repositories you do not own, most stars first, taken from your 100 most recently updated merged pull requests, and its bars use a log scale. Reviews are as your profile shows them.
+- **Open source** counts the pull requests you opened in the last 12 months and how many of those are merged, so one that is still open counts against the merge rate. The list shows repositories you do not own, most stars first, taken from your 100 most recently updated merged pull requests, and its bars use a log scale. The reviews chip appears only when you have reviews, counted as your profile shows them.
 - **Rhythm** sums the same daily counts as the heatmap by weekday and by calendar month. These are totals, not averages, and each chart has its own scale. The first and last month are partial and drawn with a dashed outline.
 
 A few things worth knowing:
