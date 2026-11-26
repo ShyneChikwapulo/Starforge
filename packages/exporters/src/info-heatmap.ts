@@ -143,9 +143,12 @@ export const heatmapCard: InfoCardDef = {
     });
 
     // One path of squares per level: compact, and every square shares one fill.
+    const heat = ctx.skin.heat;
     const fills = [
       ctx.track(0.1),
-      ...OPACITY.map((opacity) => `fill="${colors.accent}" fill-opacity="${opacity}"`),
+      ...OPACITY.map((opacity, i) =>
+        heat ? `fill="${heat[i]}"` : `fill="${colors.accent}" fill-opacity="${opacity}"`,
+      ),
     ];
     for (let level = 0; level <= 4; level++) {
       const d = cells

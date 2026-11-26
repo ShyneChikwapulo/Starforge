@@ -120,7 +120,7 @@ export const ConfigSchema = z
     if (config.skinAccent === undefined) return;
     const problem =
       config.skin !== 'default'
-        ? 'skinAccent recolours the "default" skin only; the cyberpunk look keeps its own colours, so set skin to "default"'
+        ? 'skinAccent recolours the "default" skin only; the other skins keep their own colours, so set skin to "default"'
         : accentProblem(config.skinAccent);
     if (problem) context.addIssue({ code: 'custom', message: problem, path: ['skinAccent'] });
   });

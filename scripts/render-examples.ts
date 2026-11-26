@@ -63,6 +63,11 @@ async function main(): Promise<void> {
     renderCardSvg(metrics, { skin: 'default' }),
   );
   files.push('card-default.svg');
+  await writeFile(
+    join(ROOT, OUTPUT_DIR, 'card-sunset.svg'),
+    renderCardSvg(metrics, { skin: 'sunset' }),
+  );
+  files.push('card-sunset.svg');
 
   // The preset cards wrap each animation, and the page pieces show how they stack.
   const frameSize = (id: string): { width: number; height: number } => {
@@ -85,6 +90,7 @@ async function main(): Promise<void> {
     ['chess-page.svg', await cardFor('chess', 'none')],
     ['languages-card.svg', renderInfoCardSvg(metrics, { card: 'languages' })],
     ['heatmap-card.svg', renderInfoCardSvg(metrics, { card: 'heatmap' })],
+    ['sunset-heatmap-card.svg', renderInfoCardSvg(metrics, { card: 'heatmap', skin: 'sunset' })],
     ['opensource-card.svg', renderInfoCardSvg(metrics, { card: 'opensource' })],
     ['rhythm-card.svg', renderInfoCardSvg(metrics, { card: 'rhythm' })],
     ['page-divider.svg', renderSectionSvg('Presets', { subtitle: 'Five ways to see one year' })],
