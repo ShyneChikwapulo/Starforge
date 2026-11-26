@@ -28,7 +28,7 @@ export interface SkinColors {
   label?: string;
 }
 
-export const SKIN_NAMES = ['cyberpunk', 'default'] as const;
+export const SKIN_NAMES = ['cyberpunk', 'default', 'sunset'] as const;
 export type SkinName = (typeof SKIN_NAMES)[number];
 
 export interface Skin {
@@ -56,6 +56,11 @@ export interface Skin {
    * and a glitch layer. Without it the name is plain capitals in the card font.
    */
   wordmark: boolean;
+  /**
+   * Colours for the four busier levels of the heatmap, quietest first, for a skin that wants a ramp
+   * of hues. Without it the heatmap uses the accent at rising opacity.
+   */
+  heat?: [string, string, string, string];
 }
 
 /** The attributes of an outline or divider, at `opacity` in a skin that tints them. */
@@ -141,9 +146,41 @@ export function createDefaultSkin(accent = '#3fb950'): Skin {
   };
 }
 
+/** A parallelogram that leans right at the top, like the tilted panels of the sunset look. */
+function slanted(x: number, y: number, w: number, h: number): string {
+  const lean = Math.min(12, Math.round(h * 0.3));
+  return `M${x + lean},${y} H${x + w} L${x + w - lean},${y + h} H${x} Z`;
+}
+
+/** Dusk over the coast: warm orange on aubergine, leaning panels, and a heat ramp from plum to gold. */
+export const SUNSET: Skin = {
+  name: 'sunset',
+  colors: {
+    accent: '#ffb347',
+    accent2: '#ff2e88',
+    bg: '#0b081b',
+    panel: '#150d28',
+    row: '#1c1233',
+    text: '#fff4e6',
+    muted: '#9a94c0',
+    soft: '#d9d3f0',
+    title: '#fff4e6',
+    label: '#ffb347',
+  },
+  shape: slanted,
+  lines: '#3a2a5c',
+  tracks: '#241338',
+  chips: 'solid',
+  ornaments: false,
+  glow: false,
+  wordmark: false,
+  heat: ['#5a2a7a', '#c2257e', '#ff6a3d', '#ffd36b'],
+};
+
 const SKINS: Record<SkinName, Skin> = {
   cyberpunk: CYBERPUNK,
   default: createDefaultSkin(),
+  sunset: SUNSET,
 };
 
 /** The skin to draw with: a named one, one passed in whole, or the default. */
